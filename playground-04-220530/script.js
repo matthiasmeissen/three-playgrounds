@@ -7,14 +7,15 @@ const scene = new THREE.Scene()
 
 // Geometry
 
-function makeCube (pos) {
+const makeCube = (pos) => {
     const cube = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshPhongMaterial({ 
-            color: 'hsl(0, 100%, 0%)', 
-            specular: 'hsl(0, 100%, 100%)', 
-            shininess: 30, 
-            flatShading: true })
+        new THREE.MeshPhongMaterial({
+            color: 'hsl(0, 100%, 0%)',
+            specular: 'hsl(0, 100%, 100%)',
+            shininess: 30,
+            flatShading: true
+        })
     )
     cube.position.set(pos.x, pos.y, pos.z)
     return cube
@@ -30,6 +31,20 @@ const cube3 = makeCube(new THREE.Vector3(1.5, 0, 0))
 group.add(cube1)
 group.add(cube2)
 group.add(cube3)
+
+for (let i = 0; i < 10; i++) {
+    const cube = makeCube(new THREE.Vector3(0.8, 0, -0.5 + i * 0.1))
+    cube.scale.set(0.02, 1.4, 0.02)
+
+    group.add(cube)
+}
+
+for (let i = 0; i < 10; i++) {
+    const cube = makeCube(new THREE.Vector3(-0.8, 0, -0.5 + i * 0.1))
+    cube.scale.set(0.02, 1.4, 0.02)
+
+    group.add(cube)
+}
 
 
 // Lights
@@ -63,16 +78,18 @@ function onWindowResize() {
 }
 
 
-function rotateCubes () {
-    cube1.rotation.y += 0.01
-    cube2.rotation.x += 0.01
-    cube3.rotation.x += 0.01
+// Functions
 
-    group.rotation.y += 0.02
-    group.rotation.z += 0.02
+const rotateCubes = () => {
+    cube1.rotation.y = absTime
+    cube2.rotation.x = absTime
+    cube3.rotation.x = absTime
+
+    group.position.y = Math.sin(absTime)
+    group.rotation.y = absTime
 }
 
-function changeColor () {
+const changeColor = () => {
     const color = Math.random()
 
     cube1.material.specular.setHSL(color, 1.0, 0.5)
@@ -80,15 +97,27 @@ function changeColor () {
     cube3.material.specular.setHSL(color, 1.0, 0.5)
 }
 
+const moveCamera = () => {
+    camera.position.x = Math.sin(absTime) * 2
+    camera.lookAt(group.position)
+}
 
-// Animation
+
+// Clock
+const clock = new THREE.Clock()
+let absTime
+
+
+// Animate
 function animate () {
-    requestAnimationFrame(animate)
+    absTime = clock.getElapsedTime()
 
     rotateCubes()
     changeColor()
+    moveCamera()
 
     renderer.render(scene, camera)
+    requestAnimationFrame(animate)
 }
 
 animate()
