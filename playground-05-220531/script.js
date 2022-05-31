@@ -21,41 +21,42 @@ const makeCube = (pos) => {
     return cube
 }
 
-const group = new THREE.Group()
-scene.add(group)
+const group1 = new THREE.Group()
+scene.add(group1)
 
-const cube1 = makeCube(new THREE.Vector3(0, 0, 0))
-const cube2 = makeCube(new THREE.Vector3(-1.5, 0, 0))
-const cube3 = makeCube(new THREE.Vector3(1.5, 0, 0))
+for (let i = 0; i < 40; i++) {
+    const cube = makeCube(new THREE.Vector3(-2 + i * 0.1, 0, -0.01))
+    cube.scale.set(0.02, 10, 0.02)
 
-group.add(cube1)
-group.add(cube2)
-group.add(cube3)
-
-for (let i = 0; i < 10; i++) {
-    const cube = makeCube(new THREE.Vector3(0.8, 0, -0.5 + i * 0.1))
-    cube.scale.set(0.02, 1.4, 0.02)
-
-    group.add(cube)
+    group1.add(cube)
 }
 
-for (let i = 0; i < 10; i++) {
-    const cube = makeCube(new THREE.Vector3(-0.8, 0, -0.5 + i * 0.1))
-    cube.scale.set(0.02, 1.4, 0.02)
+const group2 = new THREE.Group()
+scene.add(group2)
 
-    group.add(cube)
+for (let i = 0; i < 40; i++) {
+    const cube = makeCube(new THREE.Vector3(-2 + i * 0.1, 0, 0.01))
+    cube.scale.set(0.02, 10, 0.02)
+
+    group2.add(cube)
 }
 
 
 // Lights
+
+const lights = new THREE.Group()
+scene.add(lights)
+
 const ambientLight = new THREE.AmbientLight( 0xffffff, 0.2)
 scene.add(ambientLight)
 
-const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8)
-directionalLight.position.x = 2
-directionalLight.position.y = 2
-directionalLight.position.z = 4
-scene.add(directionalLight)
+const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
+light1.position.set(2, 2, 4)
+lights.add(light1)
+
+const light2 = new THREE.DirectionalLight(0xffffff, 0.8)
+light2.position.set(-2, 2, -4)
+lights.add(light2)
 
 
 // Camera
@@ -78,28 +79,44 @@ function onWindowResize() {
 }
 
 
-// Functions
+// Mouse Position
 
-const rotateCubes = () => {
-    cube1.rotation.y = absTime
-    cube2.rotation.x = absTime
-    cube3.rotation.x = absTime
-
-    group.position.y = Math.sin(absTime)
-    group.rotation.y = absTime
+const cursor = {
+    x: 0,
+    y: 0
 }
+
+window.addEventListener('mousemove', function (event) {
+    cursor.x = event.clientX / window.innerWidth - 0.5
+    cursor.y = - (event.clientY / window.innerHeight - 0.5)
+})
+
+const moveCamera = () => {
+    camera.position.x = Math.sin(cursor.x) * 3
+    camera.position.z = Math.cos(cursor.x) * 3
+    camera.position.y = cursor.y * 5
+
+    camera.lookAt(group1.position)
+}
+
+
+// Functions
 
 const changeColor = () => {
     const color = Math.random()
 
-    cube1.material.specular.setHSL(color, 1.0, 0.5)
-    cube2.material.specular.setHSL(color, 1.0, 0.5)
-    cube3.material.specular.setHSL(color, 1.0, 0.5)
+    light1.color.setHSL(color, 1.0, 0.5)
+    light2.color.setHSL(color, 1.0, 0.5)
 }
 
-const moveCamera = () => {
-    camera.position.x = Math.sin(absTime) * 2
-    camera.lookAt(group.position)
+const rotateLights = () => {
+    lights.rotation.y = absTime * 2
+    lights.rotation.x = absTime * 2
+}
+
+const rotateCubes = () => {
+    group1.rotation.z = absTime * 0.5
+    group2.rotation.z = - absTime * 0.5
 }
 
 
@@ -112,9 +129,10 @@ let absTime
 function animate () {
     absTime = clock.getElapsedTime()
 
-    rotateCubes()
     changeColor()
     moveCamera()
+    rotateLights()
+    rotateCubes()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
