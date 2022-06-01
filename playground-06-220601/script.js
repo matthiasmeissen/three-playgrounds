@@ -24,22 +24,21 @@ const makeCube = (pos) => {
 const group1 = new THREE.Group()
 scene.add(group1)
 
-for (let i = 0; i < 40; i++) {
-    const cube = makeCube(new THREE.Vector3(-2 + i * 0.1, 0, -0.01))
+const cubeParameters = {
+    count: 80,
+    space: 0.1,
+    rotate: 0.04
+}
+
+for (let i = 0; i < cubeParameters.count; i++) {
+    const cube = makeCube(new THREE.Vector3(i * cubeParameters.space, 0, 0))
     cube.scale.set(0.02, 10, 0.02)
+    cube.rotation.x = i * cubeParameters.rotate
 
     group1.add(cube)
 }
 
-const group2 = new THREE.Group()
-scene.add(group2)
-
-for (let i = 0; i < 40; i++) {
-    const cube = makeCube(new THREE.Vector3(-2 + i * 0.1, 0, 0.01))
-    cube.scale.set(0.02, 10, 0.02)
-
-    group2.add(cube)
-}
+group1.position.x = -(cubeParameters.count * cubeParameters.space) * 0.5
 
 
 // Lights
@@ -96,18 +95,11 @@ const moveCamera = () => {
     camera.position.z = Math.cos(cursor.x) * 3
     camera.position.y = cursor.y * 5
 
-    camera.lookAt(group1.position)
+    camera.lookAt(new THREE.Vector3())
 }
 
 
 // Functions
-
-const changeColor = () => {
-    const color = Math.random()
-
-    light1.color.setHSL(color, 1.0, 0.5)
-    light2.color.setHSL(color, 1.0, 0.5)
-}
 
 const rotateLights = () => {
     lights.rotation.y = absTime * 2
@@ -115,8 +107,7 @@ const rotateLights = () => {
 }
 
 const rotateCubes = () => {
-    group1.rotation.z = absTime * 0.5
-    group2.rotation.z = - absTime * 0.5
+    group1.rotation.x = absTime
 }
 
 
@@ -129,7 +120,6 @@ let absTime
 function animate () {
     absTime = clock.getElapsedTime()
 
-    changeColor()
     moveCamera()
     rotateLights()
     rotateCubes()
