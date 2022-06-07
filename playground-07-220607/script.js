@@ -6,39 +6,44 @@ const scene = new THREE.Scene()
 
 
 // Geometry
+const createCube = (s) => {
+    const geometry = new THREE.BoxGeometry(s.x, s.y, s.z)
+    const material = new THREE.MeshPhongMaterial({
+        color: 'hsl(0, 100%, 0%)',
+        specular: 'hsl(0, 100%, 100%)',
+        shininess: 30,
+        flatShading: true
+    })
+    const mesh = new THREE.Mesh(geometry, material)
 
-const makeCube = (pos) => {
-    const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshPhongMaterial({
-            color: 'hsl(0, 100%, 0%)',
-            specular: 'hsl(0, 100%, 100%)',
-            shininess: 30,
-            flatShading: true
-        })
-    )
-    cube.position.set(pos.x, pos.y, pos.z)
-    return cube
+    return mesh
 }
 
-const group1 = new THREE.Group()
+
+const createCircle = (num, dist, length) => {
+    const group = new THREE.Group(
+
+    )
+    for (let i = 0; i < num; i++) {
+        const pivot = new THREE.Group()
+        const cube = createCube(new THREE.Vector3(0.04, length, 0.04))
+        pivot.add(cube)
+        cube.position.set(0, length * 0.5 + dist, 0)
+        pivot.rotation.z = (Math.PI * 2 / num) * i
+
+        group.add(pivot)
+    }
+    
+    return group
+}
+
+const group1 = createCircle(40, 0.8, 10)
+group1.rotation.x = 2
 scene.add(group1)
 
-const cubeParameters = {
-    count: 80,
-    space: 0.1,
-    rotate: 0.04
-}
-
-for (let i = 0; i < cubeParameters.count; i++) {
-    const cube = makeCube(new THREE.Vector3(i * cubeParameters.space, 0, 0))
-    cube.scale.set(0.02, 10, 0.02)
-    cube.rotation.x = i * cubeParameters.rotate
-
-    group1.add(cube)
-}
-
-group1.position.x = -(cubeParameters.count * cubeParameters.space) * 0.5
+const group2 = createCircle(20, 0.4, 10)
+group2.rotation.x = 3
+scene.add(group2)
 
 
 // Lights
@@ -59,14 +64,16 @@ lights.add(light2)
 
 
 // Camera
+
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight)
 camera.position.set(0, 0, 4)
 scene.add(camera)
 
 
 // Renderer
+
 const renderer = new THREE.WebGLRenderer({canvas})
-renderer.setPixelRatio(window.devicePixelRatio)
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setSize(window.innerWidth, window.innerHeight)
 
 window.addEventListener( 'resize', onWindowResize );
@@ -76,6 +83,28 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
     renderer.setSize( window.innerWidth, window.innerHeight );
 }
+
+
+// Fullscreen
+
+window.addEventListener('dblclick', function () {
+
+    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement
+
+    if (!fullscreenElement) {
+        if (canvas.requestFullscreen) {
+            canvas.requestFullscreen()
+        } else if (canvas.webkitRequestFullscreen) {
+            canvas.webkitRequestFullscreen()
+        }
+    } else {
+        if (document.exitFullscreen) {
+            document.exitFullscreen()
+        } else if (document.webkitExitFullscreen) {
+            document.webkitExitFullscreen()
+        }
+    }
+})
 
 
 // Mouse Position
@@ -106,23 +135,20 @@ const rotateLights = () => {
     lights.rotation.x = absTime * 2
 }
 
-const rotateCubes = () => {
-    group1.rotation.x = absTime
-}
-
 
 // Clock
+
 const clock = new THREE.Clock()
 let absTime
 
 
 // Animate
+
 function animate () {
     absTime = clock.getElapsedTime()
 
     moveCamera()
     rotateLights()
-    rotateCubes()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
