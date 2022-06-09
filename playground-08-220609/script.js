@@ -6,44 +6,30 @@ const scene = new THREE.Scene()
 
 
 // Geometry
-const createCube = (s) => {
-    const geometry = new THREE.BoxGeometry(s.x, s.y, s.z)
-    const material = new THREE.MeshPhongMaterial({
-        color: 'hsl(0, 100%, 0%)',
-        specular: 'hsl(0, 100%, 100%)',
-        shininess: 30,
-        flatShading: true
-    })
-    const mesh = new THREE.Mesh(geometry, material)
 
-    return mesh
-}
+const count = 100
+const geometry = new THREE.BufferGeometry()
+const vertices = new Float32Array(count * 3 * 3)
 
-
-const createCircle = (num, dist, length) => {
-    const group = new THREE.Group(
-
-    )
-    for (let i = 0; i < num; i++) {
-        const pivot = new THREE.Group()
-        const cube = createCube(new THREE.Vector3(0.04, length, 0.04))
-        pivot.add(cube)
-        cube.position.set(0, length * 0.5 + dist, 0)
-        pivot.rotation.z = (Math.PI * 2 / num) * i
-
-        group.add(pivot)
+const createVertices = () => {
+    for (let i = 0; i < count; i++) {
+        vertices[i] = (Math.random() - 0.5) * 2
     }
-    
-    return group
+
+    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3))
 }
 
-const group1 = createCircle(40, 0.8, 10)
-group1.rotation.x = 2
-scene.add(group1)
+createVertices()
 
-const group2 = createCircle(20, 0.4, 10)
-group2.rotation.x = 3
-scene.add(group2)
+const material = new THREE.MeshPhongMaterial({
+    color: 'hsl(0, 100%, 0%)',
+    specular: 'hsl(0, 100%, 100%)',
+    shininess: 30,
+    flatShading: true
+})
+const mesh = new THREE.Mesh(geometry, material)
+
+scene.add(mesh)
 
 
 // Lights
@@ -134,6 +120,10 @@ const rotateLights = () => {
     lights.rotation.y = absTime * 2
     lights.rotation.x = absTime * 2
 }
+
+setInterval(function () {
+    createVertices()
+}, 400)
 
 
 // Clock
