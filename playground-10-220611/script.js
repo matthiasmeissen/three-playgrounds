@@ -18,51 +18,63 @@ gui.close(true)
 
 // Parameters
 const geometryParameters = {
-    count: 10,
-    change: true
+    scale: {
+        x: 2,
+        y: 0.6
+    },
+    texture: 1
 }
+
+// Textures
+const texture = new THREE.TextureLoader().load('./assets/texture_01.jpg')
 
 // Construction
-const geometry = new THREE.BufferGeometry()
+const geometry = new THREE.PlaneGeometry(1, 1)
 
-const createVertices = () => {
-    const vertices = new Float32Array(geometryParameters.count * 3 * 3)
-    for (let i = 0; i < geometryParameters.count * 3 * 3; i++) {
-        vertices[i] = (Math.random() - 0.5) * 2
-    }
-    geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3))
-}
-
-createVertices()
+texture.repeat.set(geometryParameters.texture)
 
 const material = new THREE.MeshPhongMaterial({
     color: 'hsl(0, 100%, 0%)',
     specular: 'hsl(0, 100%, 100%)',
+    bumpMap: texture,
     shininess: 30,
     flatShading: true
 })
 const mesh = new THREE.Mesh(geometry, material)
 scene.add(mesh)
 
-// Functions
-setInterval(function () {
-    if (geometryParameters.change) {
-        createVertices()
-    }
-}, 400)
+mesh.scale.x = geometryParameters.scale.x
+mesh.scale.y = geometryParameters.scale.y
+
 
 // Debug
 const geometryFolder = gui.addFolder('Geometry')
 
-geometryFolder.add(geometryParameters, 'change').name('Change Vertices')
-
-geometryFolder.add(geometryParameters, 'count')
-    .name('Polygon Count')
-    .min(1)
-    .max(20)
-    .step(1)
+geometryFolder.add(geometryParameters, 'texture')
+    .name('Texture Repeat')
+    .min(0)
+    .max(1)
+    .step(0.01)
     .onChange(function () {
-        createVertices()
+        texture.repeat.set(geometryParameters.texture)
+    })
+
+geometryFolder.add(geometryParameters.scale, 'x')
+    .name('Scale X')
+    .min(0.1)
+    .max(20)
+    .step(0.1)
+    .onChange(function () {
+        mesh.scale.x = geometryParameters.scale.x
+    })
+
+geometryFolder.add(geometryParameters.scale, 'y')
+    .name('Scale Y')
+    .min(0.1)
+    .max(20)
+    .step(0.1)
+    .onChange(function () {
+        mesh.scale.y = geometryParameters.scale.y
     })
 
 geometryFolder.addColor(mesh.material, 'color').name('Color')
