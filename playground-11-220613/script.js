@@ -22,16 +22,46 @@ const geometryParameters = {
         x: 2,
         y: 0.6
     },
-    texture: 1
+    textureRepeat: 1
 }
 
-// Textures
-const texture = new THREE.TextureLoader().load('./assets/texture_01.jpg')
+
+// Texture
+const ctx = document.createElement('canvas').getContext('2d')
+
+const par = {
+    width: 400,
+    height: 400
+}
+
+ctx.canvas.width = par.width
+ctx.canvas.height = par.height
+
+ctx.fillStyle = 'hsl(0deg, 100%, 0%)'
+ctx.fillRect(0, 0, par.width, par.height)
+
+ctx.fillStyle = 'hsla(0deg, 100%, 100%, 20%)'
+
+for (let i = 0; i < 10; i++) {
+    const x = Math.random() * par.width
+    const y = Math.random() * par.height
+    const w = Math.random() * par.width
+    const h = Math.random() * par.height
+    ctx.fillRect(x, y, w, h) 
+}
+
+
+const texture = new THREE.CanvasTexture(ctx.canvas)
+
 
 // Construction
-const geometry = new THREE.PlaneGeometry(1, 1)
+const geometry = new THREE.BoxGeometry(1, 1, 1)
 
-texture.repeat.set(geometryParameters.texture)
+texture.repeat.x = geometryParameters.textureRepeat
+texture.repeat.y = geometryParameters.textureRepeat
+
+texture.wrapS = THREE.RepeatWrapping
+texture.wrapT = THREE.RepeatWrapping
 
 const material = new THREE.MeshPhongMaterial({
     color: 'hsl(0, 100%, 0%)',
@@ -50,13 +80,14 @@ mesh.scale.y = geometryParameters.scale.y
 // Debug
 const geometryFolder = gui.addFolder('Geometry')
 
-geometryFolder.add(geometryParameters, 'texture')
+geometryFolder.add(geometryParameters, 'textureRepeat')
     .name('Texture Repeat')
     .min(0)
-    .max(1)
-    .step(0.01)
+    .max(4)
+    .step(0.1)
     .onChange(function () {
-        texture.repeat.set(geometryParameters.texture)
+        texture.repeat.x = geometryParameters.textureRepeat
+        texture.repeat.y = geometryParameters.textureRepeat
     })
 
 geometryFolder.add(geometryParameters.scale, 'x')
