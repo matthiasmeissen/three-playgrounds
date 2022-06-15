@@ -19,8 +19,8 @@ gui.close(true)
 // Parameters
 const geometryParameters = {
     scale: {
-        x: 2,
-        y: 0.6
+        x: 3.2,
+        y: 2.4
     },
     textureRepeat: 1
 }
@@ -29,26 +29,45 @@ const geometryParameters = {
 // Texture
 const ctx = document.createElement('canvas').getContext('2d')
 
+document.body.appendChild(ctx.canvas)
+
 const par = {
-    width: 400,
-    height: 400
+    width: 40,
+    height: 40
 }
 
 ctx.canvas.width = par.width
 ctx.canvas.height = par.height
 
-ctx.fillStyle = 'hsl(0deg, 100%, 0%)'
-ctx.fillRect(0, 0, par.width, par.height)
+const drawCanvas = function () {
+    ctx.fillStyle = 'hsla(0 100% 0% / 40%)'
+    ctx.fillRect(0, 0, par.width, par.height)
 
-ctx.fillStyle = 'hsla(0deg, 100%, 100%, 20%)'
+    ctx.fillStyle = 'hsla(0 100% 100% / 20%)'
 
-for (let i = 0; i < 10; i++) {
-    const x = Math.random() * par.width
-    const y = Math.random() * par.height
+    const x = (cursor.x + 0.5) * par.width
+    const y = par.height - (cursor.y + 0.5) * par.height
     const w = Math.random() * par.width
-    const h = Math.random() * par.height
-    ctx.fillRect(x, y, w, h) 
+    const h = par.height * 0.2
+
+    ctx.save()
+
+    ctx.translate(x, y)
+    ctx.fillRect(0 - w * 0.5, 0 - h * 0.5, w, h) 
+
+    ctx.restore()
+
+    const x1 = Math.random() * par.width
+    const h1 = Math.random() * par.height
+
+    ctx.fillStyle = 'hsla(0 100% 100% / 20%)'
+    ctx.fillRect(x1, 0, 20, h1)
 }
+
+setInterval(function () {
+    drawCanvas()
+    texture.needsUpdate = true
+}, 100)
 
 
 const texture = new THREE.CanvasTexture(ctx.canvas)
@@ -236,7 +255,6 @@ let absTime
 function animate () {
     absTime = clock.getElapsedTime()
 
-    moveCamera()
     rotateLights()
 
     renderer.render(scene, camera)
