@@ -20,7 +20,7 @@ gui.close(true)
 const geometryParameters = {
     scale: {
         x: 3.2,
-        y: 2.4
+        y: 6
     },
     textureRepeat: 1
 }
@@ -32,8 +32,9 @@ const ctx = document.createElement('canvas').getContext('2d')
 document.body.appendChild(ctx.canvas)
 
 const par = {
-    width: 40,
-    height: 40
+    width: 400,
+    height: 2,
+    rotation: 0
 }
 
 ctx.canvas.width = par.width
@@ -47,15 +48,16 @@ const drawCanvas = function () {
 
     const x = (cursor.x + 0.5) * par.width
     const y = par.height - (cursor.y + 0.5) * par.height
-    const w = Math.random() * par.width
+    const w = par.width
     const h = par.height * 0.2
 
     ctx.save()
-
     ctx.translate(x, y)
+    ctx.rotate(par.rotation)
     ctx.fillRect(0 - w * 0.5, 0 - h * 0.5, w, h) 
-
     ctx.restore()
+
+    par.rotation += 0.02
 
     const x1 = Math.random() * par.width
     const h1 = Math.random() * par.height
@@ -74,7 +76,7 @@ const texture = new THREE.CanvasTexture(ctx.canvas)
 
 
 // Construction
-const geometry = new THREE.BoxGeometry(1, 1, 1)
+const geometry = new THREE.PlaneGeometry(4, 0.2)
 
 texture.repeat.x = geometryParameters.textureRepeat
 texture.repeat.y = geometryParameters.textureRepeat
@@ -91,6 +93,14 @@ const material = new THREE.MeshPhongMaterial({
 })
 const mesh = new THREE.Mesh(geometry, material)
 scene.add(mesh)
+
+const mesh1 = mesh.clone()
+mesh1.position.y = 1
+scene.add(mesh1)
+
+const mesh2 = mesh.clone()
+mesh2.position.y = -1
+scene.add(mesh2)
 
 mesh.scale.x = geometryParameters.scale.x
 mesh.scale.y = geometryParameters.scale.y
@@ -255,6 +265,7 @@ let absTime
 function animate () {
     absTime = clock.getElapsedTime()
 
+    moveCamera()
     rotateLights()
 
     renderer.render(scene, camera)
