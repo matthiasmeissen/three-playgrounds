@@ -12,132 +12,107 @@ gui.close(true)
 
 
 /*
+    Canvas Texture
+*/
+
+// Parameters
+const canvasPar = {
+    width: 512,
+    height: 512,
+    num: 100,
+}
+
+
+// Create Canvas
+const ctx = document.createElement('canvas').getContext('2d')
+ctx.canvas.width = canvasPar.width
+ctx.canvas.height = canvasPar.height
+
+
+const createRect = function (num) {
+    ctx.fillStyle = '#ffffff'
+    ctx.fillRect(0, 0, canvasPar.width, canvasPar.height)
+
+
+
+    ctx.fillStyle = '#000000'
+
+    const p = canvasPar.width / num
+    const s = canvasPar.width / (num * 2)
+
+    for (let i = 0; i < num; i++) {
+        for (let j = 0; j < num; j++) {
+            ctx.fillRect(i * p, j * p, s, s)        
+        }
+    }
+
+    for (let i = 0; i < num; i++) {
+        for (let j = 0; j < num; j++) {
+            ctx.fillRect((i * p) + s, (j * p) + s, s, s)        
+        }
+    }
+}
+
+createRect(canvasPar.num)
+
+
+
+/*
     Geometry
 */
 
 
 // Parameters
 const geometryParameters = {
-    scale: {
-        x: 3.2,
-        y: 6
-    },
-    textureRepeat: 1
+    scale: 1,
 }
-
-
-// Texture
-const ctx = document.createElement('canvas').getContext('2d')
-
-document.body.appendChild(ctx.canvas)
-
-const par = {
-    width: 400,
-    height: 2,
-    rotation: 0
-}
-
-ctx.canvas.width = par.width
-ctx.canvas.height = par.height
-
-const drawCanvas = function () {
-    ctx.fillStyle = 'hsla(0 100% 0% / 40%)'
-    ctx.fillRect(0, 0, par.width, par.height)
-
-    ctx.fillStyle = 'hsla(0 100% 100% / 20%)'
-
-    const x = (cursor.x + 0.5) * par.width
-    const y = par.height - (cursor.y + 0.5) * par.height
-    const w = par.width
-    const h = par.height * 0.2
-
-    ctx.save()
-    ctx.translate(x, y)
-    ctx.rotate(par.rotation)
-    ctx.fillRect(0 - w * 0.5, 0 - h * 0.5, w, h) 
-    ctx.restore()
-
-    par.rotation += 0.02
-
-    const x1 = Math.random() * par.width
-    const h1 = Math.random() * par.height
-
-    ctx.fillStyle = 'hsla(0 100% 100% / 20%)'
-    ctx.fillRect(x1, 0, 20, h1)
-}
-
-setInterval(function () {
-    drawCanvas()
-    texture.needsUpdate = true
-}, 100)
-
 
 const texture = new THREE.CanvasTexture(ctx.canvas)
-
-
-// Construction
-const geometry = new THREE.PlaneGeometry(4, 0.2)
-
-texture.repeat.x = geometryParameters.textureRepeat
-texture.repeat.y = geometryParameters.textureRepeat
+texture.minFilter = THREE.NearestFilter
+texture.magFilter = THREE.NearestFilter
 
 texture.wrapS = THREE.RepeatWrapping
 texture.wrapT = THREE.RepeatWrapping
 
+
+// Construction
+const geometry = new THREE.BoxGeometry(1, 1, 1)
+
 const material = new THREE.MeshPhongMaterial({
-    color: 'hsl(0, 100%, 0%)',
+    color: 'hsl(0, 100%, 100%)',
     specular: 'hsl(0, 100%, 100%)',
-    bumpMap: texture,
-    shininess: 30,
+    map: texture,
+    shininess: 0,
     flatShading: true
 })
 const mesh = new THREE.Mesh(geometry, material)
 scene.add(mesh)
 
-const mesh1 = mesh.clone()
-mesh1.position.y = 1
-scene.add(mesh1)
+mesh.scale.setScalar(geometryParameters.scale)
 
-const mesh2 = mesh.clone()
-mesh2.position.y = -1
-scene.add(mesh2)
-
-mesh.scale.x = geometryParameters.scale.x
-mesh.scale.y = geometryParameters.scale.y
+mesh.rotation.y = Math.PI * 0.25
+mesh.rotation.x = Math.PI * 0.15
 
 
 // Debug
 const geometryFolder = gui.addFolder('Geometry')
 
-geometryFolder.add(geometryParameters, 'textureRepeat')
-    .name('Texture Repeat')
-    .min(0)
+
+geometryFolder.add(geometryParameters, 'scale')
+    .name('Scale')
+    .min(0.2)
     .max(4)
     .step(0.1)
     .onChange(function () {
-        texture.repeat.x = geometryParameters.textureRepeat
-        texture.repeat.y = geometryParameters.textureRepeat
-    })
-
-geometryFolder.add(geometryParameters.scale, 'x')
-    .name('Scale X')
-    .min(0.1)
-    .max(20)
-    .step(0.1)
-    .onChange(function () {
-        mesh.scale.x = geometryParameters.scale.x
-    })
-
-geometryFolder.add(geometryParameters.scale, 'y')
-    .name('Scale Y')
-    .min(0.1)
-    .max(20)
-    .step(0.1)
-    .onChange(function () {
-        mesh.scale.y = geometryParameters.scale.y
+        mesh.scale.setScalar(geometryParameters.scale)
     })
 
 geometryFolder.addColor(mesh.material, 'color').name('Color')
+
+geometryFolder.add(canvasPar, 'num').name('Count').min(10).max(400).onChange(function () {
+    createRect(canvasPar.num)
+    texture.needsUpdate = true
+})
 
 
 /*
@@ -148,7 +123,7 @@ geometryFolder.addColor(mesh.material, 'color').name('Color')
 // Parameters
 const lightParameters = {
     rotate: true,
-    speed: 2
+    speed: 0.2
 }
 
 // Construction
