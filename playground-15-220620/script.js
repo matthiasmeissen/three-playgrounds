@@ -12,107 +12,53 @@ gui.close(true)
 
 
 /*
-    Canvas Texture
-*/
-
-// Parameters
-const canvasPar = {
-    width: 512,
-    height: 512,
-    num: 100,
-}
-
-
-// Create Canvas
-const ctx = document.createElement('canvas').getContext('2d')
-ctx.canvas.width = canvasPar.width
-ctx.canvas.height = canvasPar.height
-
-
-const createRect = function (num) {
-    ctx.fillStyle = '#ffffff'
-    ctx.fillRect(0, 0, canvasPar.width, canvasPar.height)
-
-
-
-    ctx.fillStyle = '#000000'
-
-    const p = canvasPar.width / num
-    const s = canvasPar.width / (num * 2)
-
-    for (let i = 0; i < num; i++) {
-        for (let j = 0; j < num; j++) {
-            ctx.fillRect(i * p, j * p, s, s)        
-        }
-    }
-
-    for (let i = 0; i < num; i++) {
-        for (let j = 0; j < num; j++) {
-            ctx.fillRect((i * p) + s, (j * p) + s, s, s)        
-        }
-    }
-}
-
-createRect(canvasPar.num)
-
-
-
-/*
     Geometry
 */
 
 
-// Parameters
-const geometryParameters = {
-    scale: 1,
+// Construction
+
+const createCubes = function (size, num) {
+    const s = size * 0.01
+    const group = new THREE.Group()
+
+    for (let i = 1; i < num; i++) {
+        const geometry = new THREE.BoxGeometry(s, Math.sin(i), s);
+        const material = new THREE.MeshPhongMaterial({
+            color: 'hsl(0, 100%, 100%)',
+            specular: 'hsl(0, 100%, 100%)',
+            shininess: 0,
+            flatShading: true
+        })
+
+        const mesh = new THREE.Mesh(geometry, material)
+        mesh.position.x = i * s * 2
+        mesh.rotation.x = i * 0.02
+        group.add(mesh)
+    }
+
+    group.position.x = -s * num
+
+    return group
 }
 
-const texture = new THREE.CanvasTexture(ctx.canvas)
-texture.minFilter = THREE.NearestFilter
-texture.magFilter = THREE.NearestFilter
+const cubes = createCubes(0.5, 200)
 
-texture.wrapS = THREE.RepeatWrapping
-texture.wrapT = THREE.RepeatWrapping
+const cubes1 = cubes.clone()
+const cubes2 = cubes.clone()
+cubes1.position.y = 0.04
+cubes2.position.y = -0.04
 
-
-// Construction
-const geometry = new THREE.BoxGeometry(1, 1, 1)
-
-const material = new THREE.MeshPhongMaterial({
-    color: 'hsl(0, 100%, 100%)',
-    specular: 'hsl(0, 100%, 100%)',
-    map: texture,
-    shininess: 0,
-    flatShading: true
-})
-const mesh = new THREE.Mesh(geometry, material)
-scene.add(mesh)
-
-mesh.scale.setScalar(geometryParameters.scale)
-
-mesh.rotation.y = Math.PI * 0.25
-mesh.rotation.x = Math.PI * 0.15
+scene.add(cubes)
+scene.add(cubes1)
+scene.add(cubes2)
 
 
-// Debug
-const geometryFolder = gui.addFolder('Geometry')
-
-
-geometryFolder.add(geometryParameters, 'scale')
-    .name('Scale')
-    .min(0.2)
-    .max(4)
-    .step(0.1)
-    .onChange(function () {
-        mesh.scale.setScalar(geometryParameters.scale)
-    })
-
-geometryFolder.addColor(mesh.material, 'color').name('Color')
-
-geometryFolder.add(canvasPar, 'num').name('Count').min(10).max(400).onChange(function () {
-    createRect(canvasPar.num)
-    texture.needsUpdate = true
-})
+const rotateCubes = function () {
+    cubes.rotation.x = absTime
+    cubes1.rotation.x = absTime * -0.25
+    cubes2.rotation.x = absTime * 0.25
+}
 
 
 /*
@@ -240,6 +186,7 @@ let absTime
 function animate () {
     absTime = clock.getElapsedTime()
 
+    rotateCubes()
     moveCamera()
     rotateLights()
 
