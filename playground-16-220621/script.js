@@ -18,46 +18,52 @@ gui.close(true)
 
 // Construction
 
-const createCubes = function (size, num) {
-    const s = size * 0.01
-    const group = new THREE.Group()
+const geometry = new THREE.BoxGeometry(1, 1, 1);
+const material = new THREE.MeshPhongMaterial({
+    color: 'hsl(0, 100%, 100%)',
+    specular: 'hsl(0, 100%, 100%)',
+    shininess: 0,
+    flatShading: true
+})
 
-    for (let i = 1; i < num; i++) {
-        const geometry = new THREE.BoxGeometry(s, Math.sin(i), s);
-        const material = new THREE.MeshPhongMaterial({
-            color: 'hsl(0, 100%, 100%)',
-            specular: 'hsl(0, 100%, 100%)',
-            shininess: 0,
-            flatShading: true
-        })
+const mesh = new THREE.Mesh(geometry, material)
+mesh.position.x = -1
+scene.add(mesh)
 
-        const mesh = new THREE.Mesh(geometry, material)
-        mesh.position.x = i * s * 2
-        mesh.rotation.x = i * 0.02
-        group.add(mesh)
-    }
-
-    group.position.x = -s * num
-
-    return group
-}
-
-const cubes = createCubes(0.5, 200)
-
-const cubes1 = cubes.clone()
-const cubes2 = cubes.clone()
-cubes1.position.y = 0.04
-cubes2.position.y = -0.04
-
-scene.add(cubes)
-scene.add(cubes1)
-scene.add(cubes2)
+const mesh2 = new THREE.Mesh(geometry, material)
+mesh2.position.x = 1
+scene.add(mesh2)
 
 
-const rotateCubes = function () {
-    cubes.rotation.x = absTime
-    cubes1.rotation.x = absTime * -0.25
-    cubes2.rotation.x = absTime * 0.25
+const raycaster = new THREE.Raycaster()
+
+let Intersected
+
+const checkIntersection = () => {
+    raycaster.setFromCamera(cursor, camera)
+
+    const intersects = raycaster.intersectObjects( scene.children, false );
+
+	if ( intersects.length > 0 ) {
+
+	    if ( Intersected != intersects[ 0 ].object ) {
+
+			if ( Intersected ) Intersected.material.color.setHex( Intersected.currentHex )
+
+			Intersected = intersects[ 0 ].object
+			Intersected.currentHex = Intersected.material.color.getHex()
+			Intersected.material.color.setHex( 0xff00ff )
+
+			}
+
+		} else {
+
+			if ( Intersected ) Intersected.material.color.setHex( Intersected.currentHex )
+
+			Intersected = null
+
+	}
+
 }
 
 
@@ -113,8 +119,8 @@ scene.add(camera)
 // Functions
 const moveCamera = () => {
     camera.position.x = Math.sin(cursor.x) * 3
-    camera.position.z = Math.cos(cursor.x) * 3
-    camera.position.y = cursor.y * 5
+    camera.position.z = Math.cos(cursor.y) * 3
+    camera.position.y = cursor.y * 2
 
     camera.lookAt(new THREE.Vector3())
 }
@@ -164,14 +170,11 @@ window.addEventListener('dblclick', function () {
 
 // Mouse Position
 
-const cursor = {
-    x: 0,
-    y: 0
-}
+const cursor = new THREE.Vector2()
 
 window.addEventListener('mousemove', function (event) {
-    cursor.x = event.clientX / window.innerWidth - 0.5
-    cursor.y = - (event.clientY / window.innerHeight - 0.5)
+    cursor.x = (event.clientX / window.innerWidth) * 2 - 1
+    cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
 })
 
 
@@ -186,9 +189,9 @@ let absTime
 function animate () {
     absTime = clock.getElapsedTime()
 
-    rotateCubes()
     moveCamera()
     rotateLights()
+    checkIntersection()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
