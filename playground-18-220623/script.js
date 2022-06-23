@@ -18,31 +18,35 @@ gui.close(true)
 
 // Construction
 
-const material = new THREE.MeshBasicMaterial()
+const par = {
+    num: 80,
+    dist: 0.04
+}
 
 const group = new THREE.Group()
 
-const num = 10
-
-for (let i = 1; i < num; i++) {
+for (let i = 0; i < par.num; i++) {
     const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(0.04, 1, 0.04),
-        material
+        new THREE.BoxGeometry(0.02, 1, 0.02),
+        new THREE.MeshPhongMaterial({
+            color: 'hsl(0, 100%, 0%)',
+            specular: 'hsl(0, 100%, 50%)',
+        })
     )
 
-    cube.position.x = (i * 0.1) - 0.5
+    cube.position.x = (par.num * par.dist * 0.5) - i * par.dist
 
     group.add(cube)
 }
 
 scene.add(group)
 
-const scaleCubes = function () {
-    group.children.forEach((item, index) => {
-        item.scale.y = 0.1 + Math.sin(index * absTime * 0.2)
-        item.scale.z = 0.1 + Math.cos(index * absTime * 0.1) * 20
-    });
-}
+group.children.forEach((item, index) => {
+    const pos = index / group.children.length
+    item.material.color.setHSL(pos, 1, 0.4)
+    item.material.specular.setHSL(pos, 1, 0.5)
+    item.rotation.x = pos * Math.PI * 2
+});
 
 
 /*
@@ -169,9 +173,8 @@ function animate () {
 
     moveCamera()
     rotateLights()
-    scaleCubes()
 
-    material.color.setHSL(cursor.x, 1.0, 0.5)
+    group.rotation.x = absTime * 0.2
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
