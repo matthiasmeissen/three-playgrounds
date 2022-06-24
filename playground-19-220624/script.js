@@ -10,6 +10,31 @@ var GUI = lil.GUI
 const gui = new GUI()
 gui.close(true)
 
+/*
+    Texture
+*/
+
+const canvasPar = {
+    width: 512,
+    height: 512,
+    stroke: 0.4,
+}
+
+const ctx = document.createElement('canvas').getContext('2d')
+ctx.canvas.width = canvasPar.width
+ctx.canvas.height = canvasPar.height
+
+ctx.fillStyle = '#000000'
+ctx.fillRect(0, 0, canvasPar.width, canvasPar.height)
+
+ctx.fillStyle = '#ffffff'
+ctx.save()
+ctx.translate(0, canvasPar.height * 0.5 - canvasPar.height * canvasPar.stroke * 0.5)
+ctx.fillRect(0, 0, canvasPar. width, canvasPar.height * canvasPar.stroke)
+ctx.restore()
+
+const canvasTexture = new THREE.CanvasTexture(ctx.canvas)
+
 
 /*
     Geometry
@@ -18,35 +43,31 @@ gui.close(true)
 
 // Construction
 
-const par = {
-    num: 80,
-    dist: 0.04
+const spherePar = {
+    size: 1,
+    lines: 4,
 }
 
-const group = new THREE.Group()
+const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(0.8, 32, 64),
+    new THREE.MeshPhongMaterial({
+        map: canvasTexture,
+    })
+)
 
-for (let i = 0; i < par.num; i++) {
-    const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(0.02, 1, 0.02),
-        new THREE.MeshPhongMaterial({
-            color: 'hsl(0, 100%, 0%)',
-            specular: 'hsl(0, 100%, 50%)',
-        })
-    )
+canvasTexture.wrapT = THREE.RepeatWrapping
+canvasTexture.repeat.set(1, spherePar.lines)
 
-    cube.position.x = (par.num * par.dist * 0.5) - i * par.dist
+scene.add(sphere)
 
-    group.add(cube)
-}
 
-scene.add(group)
-
-group.children.forEach((item, index) => {
-    const pos = index / group.children.length
-    item.material.color.setHSL(pos, 1, 0.4)
-    item.material.specular.setHSL(pos, 1, 0.5)
-    item.rotation.x = pos * Math.PI * 2
-});
+const geometryFolder = gui.addFolder('Geometry')
+geometryFolder.add(spherePar, 'size').name('Size').min(0.1).max(2).step(0.1).onChange(function () {
+    sphere.scale.setScalar(spherePar.size)
+})
+geometryFolder.add(spherePar, 'lines').name('Lines').min(1).max(200).step(1).onChange(function () {
+    canvasTexture.repeat.set(1, spherePar.lines)
+})
 
 
 /*
@@ -173,8 +194,6 @@ function animate () {
 
     moveCamera()
     rotateLights()
-
-    group.rotation.x = absTime * 0.2
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
