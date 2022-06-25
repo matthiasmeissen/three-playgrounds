@@ -48,26 +48,52 @@ const spherePar = {
     lines: 4,
 }
 
-const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.8, 32, 64),
-    new THREE.MeshPhongMaterial({
-        map: canvasTexture,
-    })
-)
+const group = new THREE.Group()
+
+const makePlane = function (pos) {
+    const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(2, 1),
+        new THREE.MeshStandardMaterial({
+            metalness: 1,
+            roughness: 1,
+            emissive: 'hsl(0, 0%, 50%)',
+            alphaMap: canvasTexture,
+            transparent: true,
+            side: THREE.DoubleSide
+        })
+    )
+
+    plane.position.z = pos
+
+    group.add(plane)
+}
+
+for (let i = 0; i < 20; i++) {
+    makePlane(i * -0.1)
+}
+
+scene.add(group)
+
+group.children.forEach((item, index) => {
+    item.material.emissive.setHSL(index / group.children.length, 1, 0.5)
+});
+
 
 canvasTexture.wrapT = THREE.RepeatWrapping
 canvasTexture.repeat.set(1, spherePar.lines)
 
-scene.add(sphere)
-
 
 const geometryFolder = gui.addFolder('Geometry')
 geometryFolder.add(spherePar, 'size').name('Size').min(0.1).max(2).step(0.1).onChange(function () {
-    sphere.scale.setScalar(spherePar.size)
+    group.scale.setScalar(spherePar.size)
 })
 geometryFolder.add(spherePar, 'lines').name('Lines').min(1).max(200).step(1).onChange(function () {
     canvasTexture.repeat.set(1, spherePar.lines)
 })
+
+const moveTexture = function () {
+    canvasTexture.offset.y = absTime;
+}
 
 
 /*
@@ -194,6 +220,7 @@ function animate () {
 
     moveCamera()
     rotateLights()
+    moveTexture()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
