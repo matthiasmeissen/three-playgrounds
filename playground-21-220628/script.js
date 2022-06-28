@@ -10,91 +10,42 @@ var GUI = lil.GUI
 const gui = new GUI()
 gui.close(true)
 
-/*
-    Texture
-*/
-
-const canvasPar = {
-    width: 512,
-    height: 512,
-    stroke: 0.4,
-}
-
-const ctx = document.createElement('canvas').getContext('2d')
-ctx.canvas.width = canvasPar.width
-ctx.canvas.height = canvasPar.height
-
-ctx.fillStyle = '#000000'
-ctx.fillRect(0, 0, canvasPar.width, canvasPar.height)
-
-ctx.fillStyle = '#ffffff'
-ctx.save()
-ctx.translate(0, canvasPar.height * 0.5 - canvasPar.height * canvasPar.stroke * 0.5)
-ctx.fillRect(0, 0, canvasPar. width, canvasPar.height * canvasPar.stroke)
-ctx.restore()
-
-const canvasTexture = new THREE.CanvasTexture(ctx.canvas)
-
 
 /*
     Geometry
 */
 
-
-// Construction
-
-const spherePar = {
-    size: 1,
-    lines: 4,
-}
-
 const group = new THREE.Group()
 
-const makePlane = function (pos) {
-    const plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(2, 1),
+for (let i = 0; i < 20; i++) {
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 0.02, 0.4),
         new THREE.MeshStandardMaterial({
-            metalness: 1,
-            roughness: 1,
-            emissive: 'hsl(0, 0%, 50%)',
-            alphaMap: canvasTexture,
-            transparent: true,
-            side: THREE.DoubleSide
-        })
+            emissive: 'hsl(0, 100%, 50%)'
+        }
+        )
     )
 
-    plane.position.z = pos
+    mesh.position.y = i * 0.04
+    mesh.position.z = i * -0.1
 
-    group.add(plane)
-}
+    mesh.rotation.x = i * 0.1
 
-for (let i = 0; i < 20; i++) {
-    makePlane(i * -0.1)
+    group.add(mesh)
 }
 
 scene.add(group)
 
-group.children.forEach((item, index) => {
-    item.material.emissive.setHSL(index / group.children.length, 1, 0.5)
-});
+const animateMesh = function () {
+    group.children.forEach((mesh, index) => {
+        mesh.material.color.setHSL(index / group.children.length, 1.0, 0.5)
+        mesh.material.emissive.setHSL(Math.sin(absTime * 0.2), 1.0, 0.5)
+        mesh.scale.x = (index / group.children.length) * cursor.x + 1
+    });
 
-
-canvasTexture.wrapT = THREE.RepeatWrapping
-canvasTexture.repeat.set(1, spherePar.lines)
-
-
-const geometryFolder = gui.addFolder('Geometry')
-geometryFolder.add(spherePar, 'size').name('Size').min(0.1).max(2).step(0.1).onChange(function () {
-    group.scale.setScalar(spherePar.size)
-})
-geometryFolder.add(spherePar, 'lines').name('Lines').min(1).max(200).step(1).onChange(function () {
-    canvasTexture.repeat.set(1, spherePar.lines)
-})
-
-const moveTexture = function () {
-    canvasTexture.offset.y = absTime;
+    group.position.z = 1
+    group.rotation.y = absTime * 0.4
 }
-
 
 /*
     Lights
@@ -220,7 +171,7 @@ function animate () {
 
     moveCamera()
     rotateLights()
-    moveTexture()
+    animateMesh()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
