@@ -15,37 +15,43 @@ gui.close(true)
     Geometry
 */
 
-const group = new THREE.Group()
+let vector = new THREE.Vector3(0, 1, 0)
 
-for (let i = 0; i < 20; i++) {
-    const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(2, 0.02, 0.4),
+const plane = new THREE.Plane(vector, 0)
+
+const group1 = new THREE.Group()
+
+const num = 20
+
+for (let i = 0; i < num; i++) {
+    const cube = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
         new THREE.MeshStandardMaterial({
-            emissive: 'hsl(0, 100%, 50%)'
-        }
-        )
+            side: THREE.DoubleSide,
+            clippingPlanes: [plane]
+        })
     )
 
-    mesh.position.y = i * 0.04
-    mesh.position.z = i * -0.1
+    cube.scale.setScalar(1 - (i / num) * 0.6)
 
-    mesh.rotation.x = i * 0.1
+    cube.material.color.setHSL(i / num, 1.0, 0.5)
 
-    group.add(mesh)
+    group1.add(cube)
 }
 
-scene.add(group)
+scene.add(group1)
 
-const animateMesh = function () {
-    group.children.forEach((mesh, index) => {
-        mesh.material.color.setHSL(index / group.children.length, 1.0, 0.5)
-        mesh.material.emissive.setHSL(Math.sin(absTime * 0.2), 1.0, 0.5)
-        mesh.scale.x = (index / group.children.length) * cursor.x + 1
-    });
+group1.children[0].material.color.setHSL(0, 0, 0)
+group1.children[0].material.emissive.setHSL(0, 0, 0.04)
 
-    group.position.z = 1
-    group.rotation.y = absTime * 0.4
+
+const rotatePlane = function () {
+    let axis = new THREE.Vector3(1, 0, 1)
+    let angle = 0.02
+
+    vector.applyAxisAngle (axis, angle)
 }
+
 
 /*
     Lights
@@ -115,6 +121,7 @@ const moveCamera = () => {
 const renderer = new THREE.WebGLRenderer({canvas})
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.localClippingEnabled = true;
 
 // Functions
 window.addEventListener( 'resize', onWindowResize );
@@ -171,7 +178,7 @@ function animate () {
 
     moveCamera()
     rotateLights()
-    animateMesh()
+    rotatePlane()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
