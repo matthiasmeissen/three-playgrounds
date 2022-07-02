@@ -15,41 +15,40 @@ gui.close(true)
     Geometry
 */
 
-let vector = new THREE.Vector3(0, 1, 0)
+const clipPlanes = [
+    new THREE.Plane(new THREE.Vector3(1, 0, 0)),
+    new THREE.Plane(new THREE.Vector3(0, -1, 0)),
+    new THREE.Plane(new THREE.Vector3(0, 0, -1))
+]
 
-const plane = new THREE.Plane(vector, 0)
+const group = new THREE.Group()
 
-const group1 = new THREE.Group()
-
-const num = 20
+const num = 40
 
 for (let i = 0; i < num; i++) {
-    const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1),
+    const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(1, 64, 64),
         new THREE.MeshStandardMaterial({
             side: THREE.DoubleSide,
-            clippingPlanes: [plane]
+            clippingPlanes: clipPlanes,
+            clipIntersection: true
         })
     )
 
-    cube.scale.setScalar(1 - (i / num) * 0.6)
-
-    cube.material.color.setHSL(i / num, 1.0, 0.5)
-
-    group1.add(cube)
+    sphere.scale.setScalar(i / num)
+    
+    sphere.material.color.setHSL(i / num, 1, 0.5)
+    
+    group.add(sphere)
 }
 
-scene.add(group1)
-
-group1.children[0].material.color.setHSL(0, 0, 0)
-group1.children[0].material.emissive.setHSL(0, 0, 0.04)
+scene.add(group)
 
 
-const rotatePlane = function () {
-    let axis = new THREE.Vector3(1, 0, 1)
-    let angle = 0.02
-
-    vector.applyAxisAngle (axis, angle)
+const animatePlanes = function () {
+    clipPlanes.forEach(item => {
+        item.constant = Math.sin(absTime)
+    });
 }
 
 
@@ -178,7 +177,7 @@ function animate () {
 
     moveCamera()
     rotateLights()
-    rotatePlane()
+    animatePlanes()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
