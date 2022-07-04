@@ -15,40 +15,62 @@ gui.close(true)
     Geometry
 */
 
-const clipPlanes = [
-    new THREE.Plane(new THREE.Vector3(1, 0, 0)),
-    new THREE.Plane(new THREE.Vector3(0, -1, 0)),
-    new THREE.Plane(new THREE.Vector3(0, 0, -1))
-]
-
-const group = new THREE.Group()
-
-const num = 40
-
-for (let i = 0; i < num; i++) {
-    const sphere = new THREE.Mesh(
-        new THREE.SphereGeometry(1, 64, 64),
-        new THREE.MeshStandardMaterial({
-            side: THREE.DoubleSide,
-            clippingPlanes: clipPlanes,
-            clipIntersection: true
-        })
-    )
-
-    sphere.scale.setScalar(i / num)
-    
-    sphere.material.color.setHSL(i / num, 1, 0.5)
-    
-    group.add(sphere)
+const par = {
+    size: 0.1,
+    num: 10,
+    gap: 0.2,
 }
 
-scene.add(group)
+let mesh
+
+const color = new THREE.Color()
+
+const geometry = new THREE.BoxGeometry(par.size, par.size, par.size)
+const material = new THREE.MeshStandardMaterial()
+
+const count = Math.pow(par.num, 2)
+
+mesh = new THREE.InstancedMesh(geometry, material, count)
+
+const matrix = new THREE.Matrix4()
+
+let pos = 0
+
+for (let i = 0; i < par.num; i++) {
+    for (let j = 0; j < par.num; j++) {
+        matrix.setPosition(i / (par.num * (1 - par.gap)) , j / (par.num * (1 - par.gap)), 0)
+        mesh.setMatrixAt(pos, matrix)
+        mesh.setColorAt(pos, color.setHSL(0, 0, 1))
+
+        pos += 1
+    }
+}
+
+mesh.position.x = -0.5
+mesh.position.y = -0.5
+
+scene.add(mesh)
 
 
-const animatePlanes = function () {
-    clipPlanes.forEach(item => {
-        item.constant = Math.sin(absTime)
-    });
+const raycaster = new THREE.Raycaster()
+
+const checkIntersection = function () {
+    raycaster.setFromCamera(cursor, camera)
+
+    const intersection = raycaster.intersectObject(mesh)
+
+    if (intersection.length > 0) {
+        const instanceId = intersection[0].instanceId
+
+        if (absTime%1 > 0.5 ) {
+            mesh.setColorAt(instanceId, color.setHSL(absTime * 0.2, 1.0, 0.5))
+        } else {
+            mesh.setColorAt(instanceId, color.setHSL(1, 1, 1))
+        }
+
+
+        mesh.instanceColor.needsUpdate = true
+    }
 }
 
 
@@ -177,7 +199,7 @@ function animate () {
 
     moveCamera()
     rotateLights()
-    animatePlanes()
+    checkIntersection()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
