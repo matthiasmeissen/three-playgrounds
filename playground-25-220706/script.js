@@ -17,8 +17,8 @@ gui.close(true)
 
 const par = {
     size: 0.1,
-    num: 10,
-    gap: 0.2,
+    num: 20,
+    gap: 0.4,
 }
 
 let mesh
@@ -46,31 +46,32 @@ for (let i = 0; i < par.num; i++) {
     }
 }
 
-mesh.position.x = -0.5
-mesh.position.y = -0.5
+mesh.position.x = -0.8
+mesh.position.y = -0.8
 
 scene.add(mesh)
 
+let colorPosition = 0
+let colors = 0
 
-const raycaster = new THREE.Raycaster()
+const colorCubes = function () {
+    mesh.setColorAt(colorPosition, color.setHSL(colors, 1.0, 0.5))
+    mesh.instanceColor.needsUpdate = true
 
-const checkIntersection = function () {
-    raycaster.setFromCamera(cursor, camera)
-
-    const intersection = raycaster.intersectObject(mesh)
-
-    if (intersection.length > 0) {
-        const instanceId = intersection[0].instanceId
-
-        if (absTime%1 > 0.5 ) {
-            mesh.setColorAt(instanceId, color.setHSL(absTime * 0.2, 1.0, 0.5))
-        } else {
-            mesh.setColorAt(instanceId, color.setHSL(1, 1, 1))
-        }
-
-
-        mesh.instanceColor.needsUpdate = true
+    if (colorPosition > count) {
+        colorPosition = 0
+    } else {
+        colorPosition += 1
     }
+
+    if (colors > 1) {
+        colors = 0
+    } else {
+        colors += 0.0004
+    }
+    
+    console.log(colorPosition)
+
 }
 
 
@@ -198,8 +199,7 @@ function animate () {
     absTime = clock.getElapsedTime()
 
     moveCamera()
-    rotateLights()
-    checkIntersection()
+    colorCubes()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
