@@ -15,63 +15,37 @@ gui.close(true)
     Geometry
 */
 
-const par = {
-    size: 0.1,
-    num: 20,
-    gap: 0.4,
-}
+const group = new THREE.Group()
 
-let mesh
+const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(0.6, 0.6, 0.6),
+    new THREE.MeshStandardMaterial()
+)
 
-const color = new THREE.Color()
+mesh.position.x = (Math.random() * 2) - 1
+mesh.position.x = (Math.random() * 2) - 1
 
-const geometry = new THREE.BoxGeometry(par.size, par.size, par.size)
-const material = new THREE.MeshStandardMaterial()
+group.add(mesh)
 
-const count = Math.pow(par.num, 2)
+scene.add(group)
 
-mesh = new THREE.InstancedMesh(geometry, material, count)
 
-const matrix = new THREE.Matrix4()
+let isIntersected = false
 
-let pos = 0
+const raycaster = new THREE.Raycaster()
 
-for (let i = 0; i < par.num; i++) {
-    for (let j = 0; j < par.num; j++) {
-        matrix.setPosition(i / (par.num * (1 - par.gap)) , j / (par.num * (1 - par.gap)), 0)
-        mesh.setMatrixAt(pos, matrix)
-        mesh.setColorAt(pos, color.setHSL(0, 0, 1))
+const checkIntersection = function () {
+    raycaster.setFromCamera(cursor, camera)
 
-        pos += 1
-    }
-}
+    const intersection = raycaster.intersectObject(group)
 
-mesh.position.x = -0.8
-mesh.position.y = -0.8
-
-scene.add(mesh)
-
-let colorPosition = 0
-let colors = 0
-
-const colorCubes = function () {
-    mesh.setColorAt(colorPosition, color.setHSL(colors, 1.0, 0.5))
-    mesh.instanceColor.needsUpdate = true
-
-    if (colorPosition > count) {
-        colorPosition = 0
+    if (intersection.length > 0) {
+        intersection[0].object.material.color.setHSL(0.8, 1, 0.5)
+        intersection[0].object.scale.setScalar(1.2)
     } else {
-        colorPosition += 1
+        mesh.material.color.setHSL(0, 0, 1)
+        mesh.scale.setScalar(1)
     }
-
-    if (colors > 1) {
-        colors = 0
-    } else {
-        colors += 0.0004
-    }
-    
-    console.log(colorPosition)
-
 }
 
 
@@ -199,7 +173,8 @@ function animate () {
     absTime = clock.getElapsedTime()
 
     moveCamera()
-    colorCubes()
+    rotateLights()
+    checkIntersection()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
