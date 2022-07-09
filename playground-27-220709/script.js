@@ -15,39 +15,35 @@ gui.close(true)
     Geometry
 */
 
-const group = new THREE.Group()
-
-const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(0.6, 0.6, 0.6),
-    new THREE.MeshStandardMaterial()
-)
-
-mesh.position.x = (Math.random() * 2) - 1
-mesh.position.x = (Math.random() * 2) - 1
-
-group.add(mesh)
-
-scene.add(group)
-
-
-let isIntersected = false
-
-const raycaster = new THREE.Raycaster()
-
-const checkIntersection = function () {
-    raycaster.setFromCamera(cursor, camera)
-
-    const intersection = raycaster.intersectObject(group)
-
-    if (intersection.length > 0) {
-        intersection[0].object.material.color.setHSL(0.8, 1, 0.5)
-        intersection[0].object.scale.setScalar(1.2)
-    } else {
-        mesh.material.color.setHSL(0, 0, 1)
-        mesh.scale.setScalar(1)
-    }
+const par = {
+    num: 40,
+    sz: 0.02,
+    rz: 0.04
 }
 
+const group = new THREE.Group()
+
+for (let i = 0; i < par.num; i++) {
+    const mesh = new THREE.Mesh(
+        new THREE.BoxGeometry(2, 2, par.sz),
+        new THREE.MeshStandardMaterial()
+    )
+
+    mesh.position.z = -i * par.sz * 2
+    mesh.rotation.z = i * par.rz * 1.8
+
+    mesh.scale.x = i / par.num + 0.02
+
+    mesh.castShadow = true
+    mesh.receiveShadow = true
+
+    group.add(mesh)
+}
+
+group.rotation.set(0, -0.8, -0.2)
+group.position.set(-0.6, 0, 0)
+
+scene.add(group)
 
 /*
     Lights
@@ -69,10 +65,16 @@ scene.add(ambientLight)
 
 const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
 light1.position.set(2, 2, 4)
+light1.castShadow = true
+light1.shadow.mapSize.width = 1024
+light1.shadow.mapSize.height = 1024
 lights.add(light1)
 
 const light2 = new THREE.DirectionalLight(0xffffff, 0.8)
 light2.position.set(-2, 2, -4)
+light2.castShadow = true
+light2.shadow.mapSize.width = 1024
+light2.shadow.mapSize.height = 1024
 lights.add(light2)
 
 // Functions
@@ -117,7 +119,8 @@ const moveCamera = () => {
 const renderer = new THREE.WebGLRenderer({canvas})
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setSize(window.innerWidth, window.innerHeight)
-renderer.localClippingEnabled = true;
+renderer.shadowMap.enabled = true
+renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
 // Functions
 window.addEventListener( 'resize', onWindowResize );
@@ -174,7 +177,8 @@ function animate () {
 
     moveCamera()
     rotateLights()
-    checkIntersection()
+
+    group.rotation.z = absTime * 0.4
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
