@@ -10,40 +10,53 @@ var GUI = lil.GUI
 const gui = new GUI()
 gui.close(true)
 
+/*
+    Texture
+*/
+
+const cp = {
+    w: 200,
+    h: 200,
+    s: 0.2,
+}
+
+const ctx = document.createElement('canvas').getContext('2d')
+ctx.canvas.width = cp.w
+ctx.canvas.height = cp.h
+
+const drawCanvas = function () {
+    ctx.fillStyle = 'hsl(0, 0%, 10%)'
+    ctx.fillRect(0, 0, cp.w, cp.h)
+
+    const gradient = ctx.createLinearGradient(Math.abs(Math.sin(absTime * 0.2)) * cp.w, 0, cp.w, Math.abs(Math.sin(absTime * 0.4)) * cp.h)
+
+    gradient.addColorStop(0, 'hsl(' + Math.abs(Math.sin(absTime * 0.28) * 360) + ', 100%, 50%)')
+    gradient.addColorStop(0.5, 'hsl(' + Math.abs(Math.sin(absTime * 0.48) * 360) + ', 100%, 50%)')
+    gradient.addColorStop(1, 'hsl(' + Math.abs(Math.sin(absTime * 0.14) * 360) + ', 100%, 50%)')
+
+    ctx.fillStyle = gradient
+    ctx.fillRect(cp.w * (cp.s * 0.5), cp.h * (cp.s * 0.5), cp.w - (cp.w * cp.s), cp.h - (cp.h * cp.s))
+}
+
+const canvasTexture = new THREE.CanvasTexture(ctx.canvas)
 
 /*
     Geometry
 */
 
-const par = {
-    num: 40,
-    sz: 0.02,
-    rz: 0.04
+const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1.0, 1.0, 1.0),
+    new THREE.MeshStandardMaterial({
+        map: canvasTexture
+    })
+)
+
+scene.add(mesh)
+
+const rotateCube = function () {
+    mesh.rotation.y = absTime * 0.2
+    mesh.rotation.x = absTime * 0.1
 }
-
-const group = new THREE.Group()
-
-for (let i = 0; i < par.num; i++) {
-    const mesh = new THREE.Mesh(
-        new THREE.BoxGeometry(2, 2, par.sz),
-        new THREE.MeshStandardMaterial()
-    )
-
-    mesh.position.z = -i * par.sz * 2
-    mesh.rotation.z = i * par.rz * 1.8
-
-    mesh.scale.x = i / par.num + 0.02
-
-    mesh.castShadow = true
-    mesh.receiveShadow = true
-
-    group.add(mesh)
-}
-
-group.rotation.set(0, -0.8, -0.2)
-group.position.set(-0.6, 0, 0)
-
-scene.add(group)
 
 /*
     Lights
@@ -65,16 +78,10 @@ scene.add(ambientLight)
 
 const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
 light1.position.set(2, 2, 4)
-light1.castShadow = true
-light1.shadow.mapSize.width = 1024
-light1.shadow.mapSize.height = 1024
 lights.add(light1)
 
 const light2 = new THREE.DirectionalLight(0xffffff, 0.8)
 light2.position.set(-2, 2, -4)
-light2.castShadow = true
-light2.shadow.mapSize.width = 1024
-light2.shadow.mapSize.height = 1024
 lights.add(light2)
 
 // Functions
@@ -119,8 +126,6 @@ const moveCamera = () => {
 const renderer = new THREE.WebGLRenderer({canvas})
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setSize(window.innerWidth, window.innerHeight)
-renderer.shadowMap.enabled = true
-renderer.shadowMap.type = THREE.PCFSoftShadowMap
 
 // Functions
 window.addEventListener( 'resize', onWindowResize );
@@ -176,9 +181,10 @@ function animate () {
     absTime = clock.getElapsedTime()
 
     moveCamera()
-    rotateLights()
+    rotateCube()
 
-    group.rotation.z = absTime * 0.4
+    drawCanvas()
+    mesh.material.map.needsUpdate = true
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
