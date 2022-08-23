@@ -15,8 +15,8 @@ gui.close(true)
 */
 
 const cp = {
-    w: 200,
-    h: 200,
+    w: 400,
+    h: 400,
     s: 0.2,
 }
 
@@ -44,18 +44,51 @@ const canvasTexture = new THREE.CanvasTexture(ctx.canvas)
     Geometry
 */
 
+const group = new THREE.Group()
+
 const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1.0, 1.0, 1.0),
+    new THREE.CylinderGeometry(0.1, 0.1, 2, 32),
     new THREE.MeshStandardMaterial({
-        map: canvasTexture
+        map: canvasTexture,
     })
 )
 
-scene.add(mesh)
+group.add(mesh)
 
-const rotateCube = function () {
-    mesh.rotation.y = absTime * 0.2
-    mesh.rotation.x = absTime * 0.1
+const mesh1 = mesh.clone()
+mesh1.position.x = -1
+group.add(mesh1)
+
+const mesh2 = mesh.clone()
+mesh2.position.x = 1
+group.add(mesh2)
+
+const mesh3 = mesh.clone()
+mesh3.position.x = -2
+group.add(mesh3)
+
+const mesh4 = mesh.clone()
+mesh4.position.x = 2
+group.add(mesh4)
+
+scene.add(group)
+
+const rotateMesh = function () {
+    mesh.rotation.y = absTime * 0.4
+
+    mesh1.rotation.y = absTime * 0.4
+    mesh1.rotation.x = absTime * 0.8
+
+    mesh2.rotation.y = absTime * 0.4
+    mesh2.rotation.x = absTime * -0.8
+
+    mesh3.rotation.y = absTime * 0.4
+    mesh3.rotation.x = absTime * -0.8
+
+    mesh4.rotation.y = absTime * 0.4
+    mesh4.rotation.x = absTime * 0.8
+
+    group.rotation.y = absTime * 0.4
 }
 
 /*
@@ -181,7 +214,7 @@ function animate () {
     absTime = clock.getElapsedTime()
 
     moveCamera()
-    rotateCube()
+    rotateMesh()
 
     drawCanvas()
     mesh.material.map.needsUpdate = true
