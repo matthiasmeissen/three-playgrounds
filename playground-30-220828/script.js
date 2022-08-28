@@ -46,49 +46,26 @@ const canvasTexture = new THREE.CanvasTexture(ctx.canvas)
 
 const group = new THREE.Group()
 
-const mesh = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.1, 0.1, 2, 32),
-    new THREE.MeshStandardMaterial({
-        map: canvasTexture,
-    })
-)
+const geometry = new THREE.CylinderGeometry(0.04, 0.04, 0.2, 32)
+const material = new THREE.MeshStandardMaterial({map: canvasTexture})
 
-group.add(mesh)
 
-const mesh1 = mesh.clone()
-mesh1.position.x = -1
-group.add(mesh1)
+for (let i = 0; i < 100; i++) {
+    const mesh = new THREE.Mesh(geometry, material)
 
-const mesh2 = mesh.clone()
-mesh2.position.x = 1
-group.add(mesh2)
+    mesh.position.x = (Math.random() - 0.5) * 4
+    mesh.position.y = (Math.random() - 0.5) * 4
+    mesh.position.z = (Math.random() - 0.5) * 4
 
-const mesh3 = mesh.clone()
-mesh3.position.x = -2
-group.add(mesh3)
-
-const mesh4 = mesh.clone()
-mesh4.position.x = 2
-group.add(mesh4)
+    group.add(mesh)
+}
 
 scene.add(group)
 
-const rotateMesh = function () {
-    mesh.rotation.y = absTime * 0.4
+const rotateTubes = function () {
+    group.rotation.y = absTime * 0.1
 
-    mesh1.rotation.y = absTime * 0.4
-    mesh1.rotation.x = absTime * 0.8
-
-    mesh2.rotation.y = absTime * 0.4
-    mesh2.rotation.x = absTime * -0.8
-
-    mesh3.rotation.y = absTime * 0.4
-    mesh3.rotation.x = absTime * -0.8
-
-    mesh4.rotation.y = absTime * 0.4
-    mesh4.rotation.x = absTime * 0.8
-
-    group.rotation.y = absTime * 0.4
+    group.scale.y = 1 + (Math.sin(absTime) + 1) * 0.4
 }
 
 /*
@@ -214,10 +191,10 @@ function animate () {
     absTime = clock.getElapsedTime()
 
     moveCamera()
-    rotateMesh()
+    rotateTubes()
 
     drawCanvas()
-    mesh.material.map.needsUpdate = true
+    material.map.needsUpdate = true
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
