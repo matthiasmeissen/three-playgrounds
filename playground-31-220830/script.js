@@ -1,3 +1,9 @@
+import * as THREE from 'https://cdn.skypack.dev/three@0.132.2'
+import {OrbitControls} from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js'
+
+import {cp, ctx, drawCanvas} from './canvas.js'
+
+
 const canvas = document.querySelector('canvas.webgl')
 
 
@@ -5,68 +11,47 @@ const canvas = document.querySelector('canvas.webgl')
 const scene = new THREE.Scene()
 
 
-// Debug
-var GUI = lil.GUI
-const gui = new GUI()
-gui.close(true)
-
-/*
-    Texture
-*/
-
-const cp = {
-    w: 400,
-    h: 400,
-    s: 0.2,
-}
-
-const ctx = document.createElement('canvas').getContext('2d')
-ctx.canvas.width = cp.w
-ctx.canvas.height = cp.h
-
-const drawCanvas = function () {
-    ctx.fillStyle = 'hsl(0, 0%, 10%)'
-    ctx.fillRect(0, 0, cp.w, cp.h)
-
-    const gradient = ctx.createLinearGradient(Math.abs(Math.sin(absTime * 0.2)) * cp.w, 0, cp.w, Math.abs(Math.sin(absTime * 0.4)) * cp.h)
-
-    gradient.addColorStop(0, 'hsl(' + Math.abs(Math.sin(absTime * 0.28) * 360) + ', 100%, 50%)')
-    gradient.addColorStop(0.5, 'hsl(' + Math.abs(Math.sin(absTime * 0.48) * 360) + ', 100%, 50%)')
-    gradient.addColorStop(1, 'hsl(' + Math.abs(Math.sin(absTime * 0.14) * 360) + ', 100%, 50%)')
-
-    ctx.fillStyle = gradient
-    ctx.fillRect(cp.w * (cp.s * 0.5), cp.h * (cp.s * 0.5), cp.w - (cp.w * cp.s), cp.h - (cp.h * cp.s))
-}
-
-const canvasTexture = new THREE.CanvasTexture(ctx.canvas)
-
 /*
     Geometry
 */
 
+
+const points = [];
+
+const createPoints = function (num, size) {
+    for (let i = 0; i < num; i++) {
+        points.push(new THREE.Vector3((Math.random() - 0.5) * size, (Math.random() - 0.5) * size, (Math.random() - 0.5) * size))  
+    }
+}
+
+createPoints(10, 2)
+
+
 const group = new THREE.Group()
 
 const geometry = new THREE.CylinderGeometry(0.04, 0.04, 0.2, 32)
-const material = new THREE.MeshStandardMaterial({map: canvasTexture})
+const material = new THREE.MeshStandardMaterial({map: new THREE.CanvasTexture(ctx.canvas)})
 
 
-for (let i = 0; i < 100; i++) {
+points.forEach(point => {
     const mesh = new THREE.Mesh(geometry, material)
 
-    mesh.position.x = (Math.random() - 0.5) * 4
-    mesh.position.y = (Math.random() - 0.5) * 4
-    mesh.position.z = (Math.random() - 0.5) * 4
+    mesh.position.x = point.x
+    mesh.position.y = point.y
+    mesh.position.z = point.z
 
     group.add(mesh)
-}
+});
 
 scene.add(group)
 
-const rotateTubes = function () {
-    group.rotation.y = absTime * 0.1
 
-    group.scale.y = 1 + (Math.sin(absTime) + 1) * 0.4
-}
+const line = new THREE.Line( 
+    new THREE.BufferGeometry().setFromPoints(points), 
+    new THREE.LineBasicMaterial({ color: 'hsl(0, 0.0, 1.0)' })
+);
+
+scene.add(line)
 
 /*
     Lights
@@ -100,12 +85,6 @@ const rotateLights = () => {
     lights.rotation.x = absTime * lightParameters.speed
 }
 
-// Debug
-const lightFolder = gui.addFolder('Light')
-lightFolder.add(lightParameters, 'speed').name('Speed').min(0).max(8).step(0.1)
-lightFolder.addColor(light1, 'color').name('Color 1')
-lightFolder.addColor(light2, 'color').name('Color 2')
-
 
 /*
     Camera
@@ -116,15 +95,6 @@ lightFolder.addColor(light2, 'color').name('Color 2')
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight)
 camera.position.set(0, 0, 4)
 scene.add(camera)
-
-// Functions
-const moveCamera = () => {
-    camera.position.x = Math.sin(cursor.x) * 3
-    camera.position.z = Math.cos(cursor.y) * 3
-    camera.position.y = cursor.y * 2
-
-    camera.lookAt(new THREE.Vector3())
-}
 
 
 /*
@@ -145,6 +115,8 @@ function onWindowResize() {
     camera.updateProjectionMatrix();
     renderer.setSize( window.innerWidth, window.innerHeight );
 }
+
+const orbitControls = new OrbitControls(camera, renderer.domElement)
 
 
 // Fullscreen
@@ -190,10 +162,7 @@ let absTime
 function animate () {
     absTime = clock.getElapsedTime()
 
-    moveCamera()
-    rotateTubes()
-
-    drawCanvas()
+    drawCanvas(absTime)
     material.map.needsUpdate = true
 
     renderer.render(scene, camera)
