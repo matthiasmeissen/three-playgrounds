@@ -27,28 +27,75 @@ const createPoints = function (num, size) {
 createPoints(10, 2)
 
 
+let distances = []
+
+const measureDistances = function () {
+    points.forEach((point, index) => {
+        if (index < points.length - 1) {
+            const distance = points[index].distanceTo(points[index + 1])
+            distances.push(distance)
+        }
+    });
+
+    distances.unshift(1.0)
+}
+
+measureDistances()
+
+console.log(distances)
+
+
 const group = new THREE.Group()
 
 const geometry = new THREE.CylinderGeometry(0.04, 0.04, 0.2, 32)
 const material = new THREE.MeshStandardMaterial({map: new THREE.CanvasTexture(ctx.canvas)})
 
+const spheres = new THREE.Group()
 
-points.forEach(point => {
+const sphereGeometry = new THREE.SphereGeometry(0.02, 32, 16)
+const sphereMaterial = new THREE.MeshStandardMaterial()
+
+
+points.forEach((point, index) => {
     const mesh = new THREE.Mesh(geometry, material)
+    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial)
+
+    const sphereGroup = new THREE.Group()
+
+    sphere.position.y = 0.2
+
+    sphereGroup.add(sphere)
+
+    sphereGroup.rotation.y = Math.random() * Math.PI
 
     mesh.position.x = point.x
     mesh.position.y = point.y
     mesh.position.z = point.z
 
+    sphereGroup.position.x = point.x
+    sphereGroup.position.y = point.y
+    sphereGroup.position.z = point.z
+
+    sphere.scale.setScalar(distances[index])
+
     group.add(mesh)
+
+    spheres.add(sphereGroup)
 });
 
-scene.add(group)
+scene.add(group, spheres)
+
+const rotateSpheres = function () {
+    spheres.children.forEach(sphere => {
+        sphere.rotation.x = absTime
+        sphere.rotation.z = absTime
+    });
+}
 
 
 const line = new THREE.Line( 
     new THREE.BufferGeometry().setFromPoints(points), 
-    new THREE.LineBasicMaterial({ color: 'hsl(0, 0.0, 1.0)' })
+    new THREE.LineBasicMaterial({ color: 'hsl(0, 0%, 100%)' })
 );
 
 scene.add(line)
@@ -161,6 +208,8 @@ let absTime
 
 function animate () {
     absTime = clock.getElapsedTime()
+
+    rotateSpheres()
 
     drawCanvas(absTime)
     material.map.needsUpdate = true
