@@ -1,10 +1,75 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.132.2'
-import {OrbitControls} from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js'
+import { OrbitControls } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js'
 
-import {cp, ctx, drawCanvas} from './canvas.js'
+import { cp, ctx, drawCanvas } from './canvas.js'
 
 
 const canvas = document.querySelector('canvas.webgl')
+
+
+// Audio 
+
+if (typeof (WebAssembly) === "undefined") {
+    alert("WebAssembly is not supported in this browser, the page will not work !")
+}
+
+var isWebKitAudio = (typeof (webkitAudioContext) !== "undefined");
+var audio_context = (isWebKitAudio) ? new webkitAudioContext() : new AudioContext();
+var sound_dsp = null;
+
+const startSound = function () {
+    var plugin = new Faustsound(audio_context, ".");
+    plugin.load().then(node => {
+        sound_dsp = node;
+        console.log(sound_dsp.getParams());
+        
+        sound_dsp.setParamValue("/sound/gain", 0.4);
+        sound_dsp.connect(audio_context.destination);
+    });
+}
+
+window.addEventListener('load', startSound);
+
+window.addEventListener('touchstart', function () {
+    if (audio_context.state !== "suspended") return;
+    var buffer = audio_context.createBuffer(1, 1, 22050);
+    var source = audio_context.createBufferSource();
+    source.buffer = buffer;
+    source.connect(audio_context.destination);
+    source.start();
+    audio_context.resume().then(() => console.log("Audio resumed"));
+}, false);
+
+
+window.addEventListener("mousedown", () => {
+    if (audio_context.state !== "suspended") return;
+    audio_context.resume().then(() => console.log("Audio resumed"))
+});
+
+let playAudio = true;
+
+const addButton = function () {
+    const button = document.createElement('button')
+    button.style.position = 'fixed'
+    button.style.bottom = '20px'
+    button.style.left = '20px'
+
+    button.innerHTML = 'Play Audio'
+
+    button.addEventListener('click', function () {
+        if (playAudio) {
+            sound_dsp.setParamValue("/sound/gain", 0.0)
+            playAudio = false
+        } else {
+            sound_dsp.setParamValue("/sound/gain", 0.4)
+            playAudio = true
+        }
+    })
+
+    document.body.appendChild(button)
+}
+
+addButton()
 
 
 // Scene
@@ -20,7 +85,7 @@ const points = [];
 
 const createPoints = function (num, size) {
     for (let i = 0; i < num; i++) {
-        points.push(new THREE.Vector3((Math.random() - 0.5) * size, (Math.random() - 0.5) * size, (Math.random() - 0.5) * size))  
+        points.push(new THREE.Vector3((Math.random() - 0.5) * size, (Math.random() - 0.5) * size, (Math.random() - 0.5) * size))
     }
 }
 
@@ -48,53 +113,26 @@ console.log(distances)
 const group = new THREE.Group()
 
 const geometry = new THREE.CylinderGeometry(0.04, 0.04, 0.2, 32)
-const material = new THREE.MeshStandardMaterial({map: new THREE.CanvasTexture(ctx.canvas)})
-
-const spheres = new THREE.Group()
-
-const sphereGeometry = new THREE.SphereGeometry(0.02, 32, 16)
-const sphereMaterial = new THREE.MeshStandardMaterial()
+const material = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(ctx.canvas) })
 
 
 points.forEach((point, index) => {
+    
     const mesh = new THREE.Mesh(geometry, material)
-    const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial)
-
-    const sphereGroup = new THREE.Group()
-
-    sphere.position.y = 0.2
-
-    sphereGroup.add(sphere)
-
-    sphereGroup.rotation.y = Math.random() * Math.PI
 
     mesh.position.x = point.x
     mesh.position.y = point.y
     mesh.position.z = point.z
 
-    sphereGroup.position.x = point.x
-    sphereGroup.position.y = point.y
-    sphereGroup.position.z = point.z
-
-    sphere.scale.setScalar(distances[index])
-
     group.add(mesh)
-
-    spheres.add(sphereGroup)
 });
 
-scene.add(group, spheres)
+scene.add(group)
 
-const rotateSpheres = function () {
-    spheres.children.forEach(sphere => {
-        sphere.rotation.x = absTime
-        sphere.rotation.z = absTime
-    });
-}
+group.children[0].scale.setScalar(2.0)
 
-
-const line = new THREE.Line( 
-    new THREE.BufferGeometry().setFromPoints(points), 
+const line = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(points),
     new THREE.LineBasicMaterial({ color: 'hsl(0, 0%, 100%)' })
 );
 
@@ -115,7 +153,7 @@ const lightParameters = {
 const lights = new THREE.Group()
 scene.add(lights)
 
-const ambientLight = new THREE.AmbientLight( 0xffffff, 0.2)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
 scene.add(ambientLight)
 
 const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
@@ -150,17 +188,17 @@ scene.add(camera)
 
 
 // Construction
-const renderer = new THREE.WebGLRenderer({canvas})
+const renderer = new THREE.WebGLRenderer({ canvas })
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setSize(window.innerWidth, window.innerHeight)
 
 // Functions
-window.addEventListener( 'resize', onWindowResize );
+window.addEventListener('resize', onWindowResize);
 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
-    renderer.setSize( window.innerWidth, window.innerHeight );
+    renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
 const orbitControls = new OrbitControls(camera, renderer.domElement)
@@ -206,10 +244,8 @@ let absTime
 
 // Animate
 
-function animate () {
+function animate() {
     absTime = clock.getElapsedTime()
-
-    rotateSpheres()
 
     drawCanvas(absTime)
     material.map.needsUpdate = true
