@@ -40,13 +40,7 @@ window.addEventListener('touchstart', function () {
     audio_context.resume().then(() => console.log("Audio resumed"));
 }, false);
 
-
-window.addEventListener("mousedown", () => {
-    if (audio_context.state !== "suspended") return;
-    audio_context.resume().then(() => console.log("Audio resumed"))
-});
-
-let playAudio = true;
+let audioPlaying = true;
 
 const addButton = function () {
     const button = document.createElement('button')
@@ -54,22 +48,27 @@ const addButton = function () {
     button.style.bottom = '20px'
     button.style.left = '20px'
 
-    button.innerHTML = 'Play Audio'
+    button.innerHTML = 'Activate Audio'
 
     button.addEventListener('click', function () {
-        if (playAudio) {
-            sound_dsp.setParamValue("/sound/gain", 0.0)
-            playAudio = false
-        } else {
-            sound_dsp.setParamValue("/sound/gain", 0.4)
-            playAudio = true
-        }
+        if (audio_context.state !== "suspended") return;
+        audio_context.resume().then(() => console.log("Audio resumed"))
     })
 
     document.body.appendChild(button)
 }
 
 addButton()
+
+
+const playNote = function (freq) {
+    sound_dsp.setParamValue("/sound/freq", freq)
+    sound_dsp.setParamValue("/sound/gate", 1.0)
+
+    setTimeout(function () {
+        sound_dsp.setParamValue("/sound/gate", 0.0)
+    }, 200)
+}
 
 
 // Scene
@@ -129,14 +128,32 @@ points.forEach((point, index) => {
 
 scene.add(group)
 
-group.children[0].scale.setScalar(2.0)
-
 const line = new THREE.Line(
     new THREE.BufferGeometry().setFromPoints(points),
     new THREE.LineBasicMaterial({ color: 'hsl(0, 0%, 100%)' })
 );
 
 scene.add(line)
+
+let currentStep = 0;
+
+setInterval(function () {
+
+    if (currentStep < points.length - 1) {
+        currentStep += 1
+    } else {
+        currentStep = 0
+    }
+
+    group.children.forEach(item => {
+        item.scale.setScalar(1)
+    });
+
+    group.children[currentStep].scale.setScalar(2.0)
+
+    playNote((points[currentStep].y + 2) * 200)
+}, 1000)
+
 
 /*
     Lights
