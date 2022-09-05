@@ -80,79 +80,79 @@ const scene = new THREE.Scene()
 */
 
 
-const points = [];
+const circle = new THREE.Mesh(
+    new THREE.CircleGeometry(1.0, 12),
+    new THREE.MeshStandardMaterial({ 
+        map: new THREE.CanvasTexture(ctx.canvas),
+        side: THREE.DoubleSide
+    })
+)
 
-const createPoints = function (num, size) {
-    for (let i = 0; i < num; i++) {
-        points.push(new THREE.Vector3((Math.random() - 0.5) * size, (Math.random() - 0.5) * size, (Math.random() - 0.5) * size))
-    }
-}
-
-createPoints(10, 2)
-
-
-let distances = []
-
-const measureDistances = function () {
-    points.forEach((point, index) => {
-        if (index < points.length - 1) {
-            const distance = points[index].distanceTo(points[index + 1])
-            distances.push(distance)
-        }
-    });
-
-    distances.unshift(1.0)
-}
-
-measureDistances()
-
-console.log(distances)
+scene.add(circle)
 
 
-const group = new THREE.Group()
+const getVerticesFromMesh = function (mesh) {
+    const vertices = []
 
-const geometry = new THREE.CylinderGeometry(0.04, 0.04, 0.2, 32)
-const material = new THREE.MeshStandardMaterial({ map: new THREE.CanvasTexture(ctx.canvas) })
+    const positionAttributes = mesh.geometry.getAttribute('position')
 
-
-points.forEach((point, index) => {
+    for (let i = 0; i < positionAttributes.count - 1; i++) {
+        let vertex = new THREE.Vector3()
+        vertex.fromBufferAttribute( positionAttributes, i )
+        vertex = mesh.localToWorld( vertex )
     
-    const mesh = new THREE.Mesh(geometry, material)
+        vertices.push(vertex)
+    }
 
-    mesh.position.x = point.x
-    mesh.position.y = point.y
-    mesh.position.z = point.z
+    vertices.shift()
 
-    group.add(mesh)
+    console.log(vertices)
+
+    return vertices
+}
+
+
+let points = getVerticesFromMesh(circle)
+
+const cubes = new THREE.Group()
+
+points.forEach(point => {
+    const cube = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 10%)'})
+    )
+
+    cube.position.x = point.x
+    cube.position.y = point.y
+    cube.position.z = point.z
+
+    cube.scale.setScalar(0.08)
+
+    cubes.add(cube)
 });
 
-scene.add(group)
+scene.add(cubes)
 
-const line = new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints(points),
-    new THREE.LineBasicMaterial({ color: 'hsl(0, 0%, 100%)' })
-);
-
-scene.add(line)
-
-let currentStep = 0;
+let currentStep = 0
 
 setInterval(function () {
+    playNote((Math.sin(absTime) + 1.0) * (Math.sin(absTime * 0.4) + 1.0) * 600 + 100);
 
-    if (currentStep < points.length - 1) {
-        currentStep += 1
-    } else {
-        currentStep = 0
-    }
-
-    group.children.forEach(item => {
-        item.scale.setScalar(1)
+    cubes.children.forEach(cube => {
+        cube.scale.setScalar(0.08)
+        cube.material.color.setHSL(0, 0, 0.1)
     });
 
-    group.children[currentStep].scale.setScalar(2.0)
-
-    playNote((points[currentStep].y + 2) * 200)
-}, 1000)
+    if (currentStep < points.length - 1) {
+        cubes.children[currentStep].scale.z = 0.2
+        cubes.children[currentStep].material.color.setHSL(0, 0, 1)
+        currentStep += 1
+    } else {
+        cubes.children[currentStep].scale.z = 0.2
+        cubes.children[currentStep].material.color.setHSL(0, 0, 1)
+        currentStep = 0
+    }
+}, 400)
 
 
 /*
@@ -265,7 +265,7 @@ function animate() {
     absTime = clock.getElapsedTime()
 
     drawCanvas(absTime)
-    material.map.needsUpdate = true
+    circle.material.map.needsUpdate = true
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
