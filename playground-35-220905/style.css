@@ -1,0 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+}
+
+a.menu {
+    position: fixed;
+    right: 60px;
+    bottom: 60px;
+    color: #000000;
+    text-decoration: none;
+    background-color: #ffffff;
+    padding: 8px 12px;
+    border: 1px solid #000000;
+    border-radius: 20px;
+    opacity: 0.2;
+}
+
+a.menu:hover {
+    opacity: 1;
+}
