@@ -80,79 +80,131 @@ const scene = new THREE.Scene()
 */
 
 
-const circle = new THREE.Mesh(
-    new THREE.CircleGeometry(1.0, 12),
-    new THREE.MeshStandardMaterial({ 
-        map: new THREE.CanvasTexture(ctx.canvas),
-        side: THREE.DoubleSide
-    })
-)
+const createRandomPoints = function (num, scale) {
+    const points = []
 
-scene.add(circle)
-
-
-const getVerticesFromMesh = function (mesh) {
-    const vertices = []
-
-    const positionAttributes = mesh.geometry.getAttribute('position')
-
-    for (let i = 0; i < positionAttributes.count - 1; i++) {
-        let vertex = new THREE.Vector3()
-        vertex.fromBufferAttribute( positionAttributes, i )
-        vertex = mesh.localToWorld( vertex )
-    
-        vertices.push(vertex)
+    const randomNumber = function () {
+        const number = (Math.random() - 0.5) * 2.0 * scale
+        return number
     }
 
-    vertices.shift()
+    for (let i = 0; i < num; i++) {
+        const point = new THREE.Vector3(randomNumber(), randomNumber(), randomNumber());
+        points.push(point)
+    }
 
-    console.log(vertices)
-
-    return vertices
+    return points
 }
 
+const points = createRandomPoints(20, 0.8)
 
-let points = getVerticesFromMesh(circle)
+console.log(points)
 
 const cubes = new THREE.Group()
 
 points.forEach(point => {
     const cube = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 10%)'})
+        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 100%)'})
     )
 
     cube.position.x = point.x
     cube.position.y = point.y
     cube.position.z = point.z
 
-    cube.scale.setScalar(0.08)
+    cube.scale.setScalar(0.1)
 
     cubes.add(cube)
 });
 
+console.log(cubes)
+
 scene.add(cubes)
 
-let currentStep = 0
 
-setInterval(function () {
-    playNote((Math.sin(absTime) + 1.0) * (Math.sin(absTime * 0.4) + 1.0) * 600 + 100);
 
-    cubes.children.forEach(cube => {
-        cube.scale.setScalar(0.08)
-        cube.material.color.setHSL(0, 0, 0.1)
-    });
 
-    if (currentStep < points.length - 1) {
-        cubes.children[currentStep].scale.z = 0.2
-        cubes.children[currentStep].material.color.setHSL(0, 0, 1)
-        currentStep += 1
-    } else {
-        cubes.children[currentStep].scale.z = 0.2
-        cubes.children[currentStep].material.color.setHSL(0, 0, 1)
-        currentStep = 0
+
+const planeVector = new THREE.Vector3(1, 0, 0)
+const plane1 = new THREE.Plane(planeVector, 1)
+
+
+const cube = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 100%)'})
+)
+
+cube.geometry.computeBoundingBox()
+let boundingBox = new THREE.Box3().setFromObject(cube)
+
+scene.add(cube)
+
+
+let intersects = false
+let allowTrigger = true
+
+const checkPlaneIntersection = function () {
+    const position = (absTime * 0.4)%2 - 1
+
+    plane1.set(planeVector, position)
+
+    intersects = boundingBox.intersectsPlane(plane1)
+
+    if (intersects && allowTrigger) {
+        console.log('Trigger')
+        allowTrigger = false
     }
-}, 400)
+
+    if (!intersects && !allowTrigger) {
+        allowTrigger = true
+    }
+}
+
+
+const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 1),
+    new THREE.MeshStandardMaterial({
+        color: 'hsl(0, 0%, 80%)',
+        side: THREE.DoubleSide
+    })
+)
+
+plane.scale.setScalar(2.0)
+plane.rotation.y = Math.PI * 0.5
+
+scene.add(plane)
+
+let currentPosition = 0
+
+const updatePosition = function () {
+    currentPosition = (absTime * 0.4)%2 - 1
+}
+
+const movePlane = function () {
+    plane.position.x = currentPosition
+}
+
+let intersection = 0
+let allowAdd = true
+
+const addToIntersection = function () {
+    if (allowAdd) {
+        intersection += 1
+        allowAdd = false
+        setTimeout(function () {
+            allowAdd = true
+        }, 200)
+    }
+}
+
+const checkIntersection = function () {
+    points.forEach(point => {
+        if (point.x > currentPosition - 0.01 && point.x < currentPosition + 0.01) {
+            addToIntersection()
+            console.log(intersection)
+        }
+    });
+}
 
 
 /*
@@ -265,7 +317,9 @@ function animate() {
     absTime = clock.getElapsedTime()
 
     drawCanvas(absTime)
-    circle.material.map.needsUpdate = true
+    updatePosition()
+    movePlane()
+    checkPlaneIntersection()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
