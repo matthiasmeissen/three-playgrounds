@@ -80,6 +80,8 @@ const scene = new THREE.Scene()
 */
 
 
+// Create a set of random points
+
 const createRandomPoints = function (num, scale) {
     const points = []
 
@@ -96,9 +98,11 @@ const createRandomPoints = function (num, scale) {
     return points
 }
 
-const points = createRandomPoints(20, 0.8)
+const points = createRandomPoints(10, 0.8)
 
-console.log(points)
+
+
+// Create cubes at each point
 
 const cubes = new THREE.Group()
 
@@ -107,6 +111,8 @@ points.forEach(point => {
         new THREE.BoxGeometry(1, 1, 1),
         new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 100%)'})
     )
+
+    cube.geometry.computeBoundingBox()
 
     cube.position.x = point.x
     cube.position.y = point.y
@@ -117,49 +123,22 @@ points.forEach(point => {
     cubes.add(cube)
 });
 
-console.log(cubes)
-
 scene.add(cubes)
 
 
 
+// Create bounding boxes for each cube
+
+let boundingBoxes = []
+
+cubes.children.forEach(cube => {
+    const boundingBox = new THREE.Box3().setFromObject(cube)
+    boundingBoxes.push(boundingBox)
+});
 
 
-const planeVector = new THREE.Vector3(1, 0, 0)
-const plane1 = new THREE.Plane(planeVector, 1)
 
-
-const cube = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 100%)'})
-)
-
-cube.geometry.computeBoundingBox()
-let boundingBox = new THREE.Box3().setFromObject(cube)
-
-scene.add(cube)
-
-
-let intersects = false
-let allowTrigger = true
-
-const checkPlaneIntersection = function () {
-    const position = (absTime * 0.4)%2 - 1
-
-    plane1.set(planeVector, position)
-
-    intersects = boundingBox.intersectsPlane(plane1)
-
-    if (intersects && allowTrigger) {
-        console.log('Trigger')
-        allowTrigger = false
-    }
-
-    if (!intersects && !allowTrigger) {
-        allowTrigger = true
-    }
-}
-
+// Create a plane and move it around
 
 const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(1, 1),
@@ -174,6 +153,11 @@ plane.rotation.y = Math.PI * 0.5
 
 scene.add(plane)
 
+
+const planeVector = new THREE.Vector3(1, 0, 0)
+const intersectPlane = new THREE.Plane(planeVector, 1)
+
+
 let currentPosition = 0
 
 const updatePosition = function () {
@@ -182,29 +166,43 @@ const updatePosition = function () {
 
 const movePlane = function () {
     plane.position.x = currentPosition
+    intersectPlane.set(planeVector, -currentPosition)
 }
 
-let intersection = 0
-let allowAdd = true
 
-const addToIntersection = function () {
-    if (allowAdd) {
-        intersection += 1
-        allowAdd = false
-        setTimeout(function () {
-            allowAdd = true
-        }, 200)
+
+// Set states of each cube
+
+let states = []
+
+cubes.children.forEach(cube => {
+    const state = {
+        prev: false,
+        current: false
     }
-}
 
-const checkIntersection = function () {
-    points.forEach(point => {
-        if (point.x > currentPosition - 0.01 && point.x < currentPosition + 0.01) {
-            addToIntersection()
-            console.log(intersection)
+    states.push(state)
+});
+
+let trigger = 0
+
+const checkIntersections = function () {
+    boundingBoxes.forEach((boundingBox, index) => {
+        states[index].current = boundingBox.intersectsPlane(intersectPlane)
+
+        if (states[index].prev == false && states[index].current == true) {
+            trigger += 1
+            console.log(trigger)
+
+            const position = (cubes.children[index].position.y + 1.0) / 2.0
+
+            playNote(position * 400 + 200)
         }
+
+        states[index].prev = states[index].current
     });
 }
+
 
 
 /*
@@ -319,7 +317,7 @@ function animate() {
     drawCanvas(absTime)
     updatePosition()
     movePlane()
-    checkPlaneIntersection()
+    checkIntersections()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
