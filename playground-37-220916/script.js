@@ -79,62 +79,85 @@ const scene = new THREE.Scene()
     Geometry
 */
 
-
-// Create a set of random points
-
-const createRandomPoints = function (num, scale) {
-    const points = []
-
-    const randomNumber = function () {
-        const number = (Math.random() - 0.5) * 2.0 * scale
-        return number
+class Point {
+    pos = new THREE.Vector3(1.0, 1.0, 1.0)
+    size = null
+    cube = null
+    boundingBox = null
+    state = {
+        prev: false,
+        current: false
+    }
+    
+    constructor(size = 1.0) {
+        this.size = size * 0.1
     }
 
-    for (let i = 0; i < num; i++) {
-        const point = new THREE.Vector3(randomNumber(), randomNumber(), randomNumber());
-        points.push(point)
+    randomPosition (scale = 1.0) {
+        this.pos.x = (Math.random() - 0.5) * 2.0 * scale
+        this.pos.y = (Math.random() - 0.5) * 2.0 * scale
+        this.pos.z = (Math.random() - 0.5) * 2.0 * scale
     }
 
-    return points
+    createMesh () {
+        this.cube = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 1, 1),
+            new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 100%)'})
+        )
+    }
+
+    setMeshSize () {
+        this.cube.scale.setScalar(this.size)
+    }
+    
+    setMeshPosition () {
+        this.cube.position.x = this.pos.x
+        this.cube.position.y = this.pos.y
+        this.cube.position.y = this.pos.y
+    }
+    
+    createBoundingBox () {
+        this.boundingBox = new THREE.Box3().setFromObject(this.cube)
+    }
+
+    addToScene() {
+        scene.add(this.cube)
+        console.log(this.cube)
+    }
+
+    checkCollision (mesh) {
+        this.state.current = this.boundingBox.intersectsPlane(mesh)
+
+        if (this.state.prev == false && this.state.current == true) {
+            playNote(400)
+        }
+
+        this.state.prev = this.state.current
+    }
+
+    showIntersection (mesh) {
+        if (this.boundingBox.intersectsPlane(mesh)) {
+            this.cube.material.color.setHSL(0, 0, 1)
+        } else {
+            this.cube.material.color.setHSL(0, 0, 0.5)
+        }
+    }
+
+    create () {
+        this.randomPosition()
+        this.createMesh()
+        this.setMeshPosition()
+        this.setMeshSize()
+        this.createBoundingBox()
+        this.addToScene()
+    }
 }
 
-const points = createRandomPoints(10, 0.8)
+const point = new Point()
 
+point.create()
 
-
-// Create cubes at each point
-
-const cubes = new THREE.Group()
-
-points.forEach(point => {
-    const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 100%)'})
-    )
-
-    cube.geometry.computeBoundingBox()
-
-    cube.position.x = point.x
-    cube.position.y = point.y
-    cube.position.z = point.z
-
-    cube.scale.setScalar(0.1)
-
-    cubes.add(cube)
-});
-
-scene.add(cubes)
-
-
-
-// Create bounding boxes for each cube
-
-let boundingBoxes = []
-
-cubes.children.forEach(cube => {
-    const boundingBox = new THREE.Box3().setFromObject(cube)
-    boundingBoxes.push(boundingBox)
-});
+console.log(point)
 
 
 
@@ -167,40 +190,6 @@ const updatePosition = function () {
 const movePlane = function () {
     plane.position.x = currentPosition
     intersectPlane.set(planeVector, -currentPosition)
-}
-
-
-
-// Set states of each cube
-
-let states = []
-
-cubes.children.forEach(cube => {
-    const state = {
-        prev: false,
-        current: false
-    }
-
-    states.push(state)
-});
-
-let trigger = 0
-
-const checkIntersections = function () {
-    boundingBoxes.forEach((boundingBox, index) => {
-        states[index].current = boundingBox.intersectsPlane(intersectPlane)
-
-        if (states[index].prev == false && states[index].current == true) {
-            trigger += 1
-            console.log(trigger)
-
-            const position = (cubes.children[index].position.y + 1.0) / 2.0
-
-            playNote(position * 400 + 200)
-        }
-
-        states[index].prev = states[index].current
-    });
 }
 
 
@@ -317,7 +306,9 @@ function animate() {
     drawCanvas(absTime)
     updatePosition()
     movePlane()
-    checkIntersections()
+
+    point.checkCollision(intersectPlane)
+    point.showIntersection(intersectPlane)
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
