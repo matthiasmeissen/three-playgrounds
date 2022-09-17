@@ -79,57 +79,31 @@ const scene = new THREE.Scene()
     Geometry
 */
 
-class Point {
-    pos = new THREE.Vector3(1.0, 1.0, 1.0)
-    size = null
-    cube = null
-    boundingBox = null
+class SequenceMesh {
     state = {
         prev: false,
         current: false
     }
     
-    constructor(size = 1.0) {
-        this.size = size * 0.1
-    }
-
-    randomPosition (scale = 1.0) {
-        this.pos.x = (Math.random() - 0.5) * 2.0 * scale
-        this.pos.y = (Math.random() - 0.5) * 2.0 * scale
-        this.pos.z = (Math.random() - 0.5) * 2.0 * scale
-    }
-
-    createMesh () {
-        this.cube = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 1, 1),
-            new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 100%)'})
-        )
-    }
-
-    setMeshSize () {
-        this.cube.scale.setScalar(this.size)
-    }
-    
-    setMeshPosition () {
-        this.cube.position.x = this.pos.x
-        this.cube.position.y = this.pos.y
-        this.cube.position.y = this.pos.y
+    constructor(mesh) {
+        this.mesh = mesh
+        this.createBoundingBox()
+        this.addToScene()
     }
     
     createBoundingBox () {
-        this.boundingBox = new THREE.Box3().setFromObject(this.cube)
+        this.boundingBox = new THREE.Box3().setFromObject(this.mesh)
     }
 
     addToScene() {
-        scene.add(this.cube)
-        console.log(this.cube)
+        scene.add(this.mesh)
     }
 
     checkCollision (mesh) {
         this.state.current = this.boundingBox.intersectsPlane(mesh)
 
         if (this.state.prev == false && this.state.current == true) {
-            playNote(400)
+            playNote(setFreq(this.mesh.position.y))
         }
 
         this.state.prev = this.state.current
@@ -137,60 +111,85 @@ class Point {
 
     showIntersection (mesh) {
         if (this.boundingBox.intersectsPlane(mesh)) {
-            this.cube.material.color.setHSL(0, 0, 1)
+            this.mesh.material.color.setHSL(0, 0, 1)
         } else {
-            this.cube.material.color.setHSL(0, 0, 0.5)
+            this.mesh.material.color.setHSL(0, 0, 0.5)
         }
     }
+}
 
-    create () {
-        this.randomPosition()
-        this.createMesh()
-        this.setMeshPosition()
-        this.setMeshSize()
-        this.createBoundingBox()
-        this.addToScene()
+const setFreq = function (val) {
+    const freq = 400 + val * 100
+    return freq
+}
+
+const randomNumber = function (scale = 1.0) {
+    return (Math.random() - 0.5) * 2.0 * scale
+}
+
+
+class Sequencer {
+    triggers = []
+    currentPosition = 0
+
+    constructor ({num = 10, speed = 0.4} = {}) {
+        this.speed = speed
+        this.createPlane()
+        this.addTriggers(num)
+    }
+
+    createPlane () {
+        this.plane = new THREE.Mesh(
+            new THREE.PlaneGeometry(1, 1),
+            new THREE.MeshStandardMaterial({
+                color: 'hsl(0, 0%, 80%)',
+                side: THREE.DoubleSide
+            })
+        )
+        
+        this.plane.scale.setScalar(2.0)
+        this.plane.rotation.y = Math.PI * 0.5
+        
+        scene.add(this.plane)
+
+        this.planeVector = new THREE.Vector3(1, 0, 0)
+        this.intersectPlane = new THREE.Plane(this.planeVector, 1)
+    }
+
+    addTriggers (num) {
+        for (let i = 0; i < num; i++) {
+            const cube = new THREE.Mesh(
+                new THREE.BoxGeometry(1, 1, 1),
+                new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 100%)'})
+            )
+            
+            cube.position.set(randomNumber(), randomNumber(), randomNumber())
+            cube.scale.setScalar(0.1)
+
+            const sequenceMesh = new SequenceMesh(cube)
+            this.triggers.push(sequenceMesh)
+        }
+
+        console.log(this.triggers)
+    }
+
+    movePlane () {
+        this.currentPosition = (absTime * this.speed)%2 - 1
+
+        this.plane.position.x = this.currentPosition
+        this.intersectPlane.set(this.planeVector, -this.currentPosition)
+    }
+
+    checkCollisions () {
+        this.triggers.forEach(trigger => {
+            trigger.checkCollision(this.intersectPlane)
+            trigger.showIntersection(this.intersectPlane)
+        });
     }
 }
 
-const point = new Point()
+const sequencer = new Sequencer()
 
-point.create()
-
-console.log(point)
-
-
-
-// Create a plane and move it around
-
-const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1),
-    new THREE.MeshStandardMaterial({
-        color: 'hsl(0, 0%, 80%)',
-        side: THREE.DoubleSide
-    })
-)
-
-plane.scale.setScalar(2.0)
-plane.rotation.y = Math.PI * 0.5
-
-scene.add(plane)
-
-
-const planeVector = new THREE.Vector3(1, 0, 0)
-const intersectPlane = new THREE.Plane(planeVector, 1)
-
-
-let currentPosition = 0
-
-const updatePosition = function () {
-    currentPosition = (absTime * 0.4)%2 - 1
-}
-
-const movePlane = function () {
-    plane.position.x = currentPosition
-    intersectPlane.set(planeVector, -currentPosition)
-}
 
 
 
@@ -304,11 +303,9 @@ function animate() {
     absTime = clock.getElapsedTime()
 
     drawCanvas(absTime)
-    updatePosition()
-    movePlane()
 
-    point.checkCollision(intersectPlane)
-    point.showIntersection(intersectPlane)
+    sequencer.movePlane()
+    sequencer.checkCollisions()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
