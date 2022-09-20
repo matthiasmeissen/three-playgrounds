@@ -1,8 +1,6 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.132.2'
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js'
 
-import { cp, ctx, drawCanvas } from './canvas.js'
-
 
 const canvas = document.querySelector('canvas.webgl')
 
@@ -23,7 +21,7 @@ const startSound = function () {
         sound_dsp = node;
         console.log(sound_dsp.getParams());
         
-        sound_dsp.setParamValue("/sound/gain", 0.4);
+        sound_dsp.setParamValue("/sound/Gain", 0.4);
         sound_dsp.connect(audio_context.destination);
     });
 }
@@ -62,11 +60,11 @@ addButton()
 
 
 const playNote = function (freq) {
-    sound_dsp.setParamValue("/sound/freq", freq)
-    sound_dsp.setParamValue("/sound/gate", 1.0)
+    sound_dsp.setParamValue("/sound/Freq", freq)
+    sound_dsp.setParamValue("/sound/Gate", 1.0)
 
     setTimeout(function () {
-        sound_dsp.setParamValue("/sound/gate", 0.0)
+        sound_dsp.setParamValue("/sound/Gate", 0.0)
     }, 200)
 }
 
@@ -79,118 +77,76 @@ const scene = new THREE.Scene()
     Geometry
 */
 
-class SequenceMesh {
-    state = {
-        prev: false,
-        current: false
-    }
-    
-    constructor(mesh) {
-        this.mesh = mesh
-        this.createBoundingBox()
-        this.addToScene()
-    }
-    
-    createBoundingBox () {
-        this.boundingBox = new THREE.Box3().setFromObject(this.mesh)
+const circle = new THREE.CircleGeometry(1, 8)
+
+
+const getPointsFromGeometry = function (geo) {
+    const pos = geo.attributes.position
+    const points = []
+
+    for (let i = 1; i < pos.count - 1; i++) {
+        const point = new THREE.Vector3().fromBufferAttribute(pos, i)
+        points.push(point)
     }
 
-    addToScene() {
-        scene.add(this.mesh)
-    }
-
-    checkCollision (mesh) {
-        this.state.current = this.boundingBox.intersectsPlane(mesh)
-
-        if (this.state.prev == false && this.state.current == true) {
-            playNote(setFreq(this.mesh.position.y))
-        }
-
-        this.state.prev = this.state.current
-    }
-
-    showIntersection (mesh) {
-        if (this.boundingBox.intersectsPlane(mesh)) {
-            this.mesh.material.color.setHSL(0, 0, 1)
-        } else {
-            this.mesh.material.color.setHSL(0, 0, 0.5)
-        }
-    }
+    return points
 }
 
-const setFreq = function (val) {
-    const freq = 400 + val * 100
-    return freq
-}
+const circlePoints = getPointsFromGeometry(circle)
 
-const randomNumber = function (scale = 1.0) {
-    return (Math.random() - 0.5) * 2.0 * scale
-}
+console.log(circlePoints)
 
 
-class Sequencer {
-    triggers = []
-    currentPosition = 0
+const cubes = new THREE.Group()
 
-    constructor ({num = 10, speed = 0.4} = {}) {
-        this.speed = speed
-        this.createPlane()
-        this.addTriggers(num)
-    }
-
-    createPlane () {
-        this.plane = new THREE.Mesh(
-            new THREE.PlaneGeometry(1, 1),
-            new THREE.MeshStandardMaterial({
-                color: 'hsl(0, 0%, 80%)',
-                side: THREE.DoubleSide
-            })
+const createCubes = function (points) {
+    points.forEach(point => {
+        const cube = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 1, 1),
+            new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
         )
-        
-        this.plane.scale.setScalar(2.0)
-        this.plane.rotation.y = Math.PI * 0.5
-        
-        scene.add(this.plane)
 
-        this.planeVector = new THREE.Vector3(1, 0, 0)
-        this.intersectPlane = new THREE.Plane(this.planeVector, 1)
-    }
+        cube.position.set(point.x, point.y, point.z)
+        cube.scale.setScalar(0.2)
 
-    addTriggers (num) {
-        for (let i = 0; i < num; i++) {
-            const cube = new THREE.Mesh(
-                new THREE.BoxGeometry(1, 1, 1),
-                new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 100%)'})
-            )
-            
-            cube.position.set(randomNumber(), randomNumber(), randomNumber())
-            cube.scale.setScalar(0.1)
+        cubes.add(cube)
+    });
 
-            const sequenceMesh = new SequenceMesh(cube)
-            this.triggers.push(sequenceMesh)
-        }
-
-        console.log(this.triggers)
-    }
-
-    movePlane () {
-        this.currentPosition = (absTime * this.speed)%2 - 1
-
-        this.plane.position.x = this.currentPosition
-        this.intersectPlane.set(this.planeVector, -this.currentPosition)
-    }
-
-    checkCollisions () {
-        this.triggers.forEach(trigger => {
-            trigger.checkCollision(this.intersectPlane)
-            trigger.showIntersection(this.intersectPlane)
-        });
-    }
+    scene.add(cubes)
 }
 
-const sequencer = new Sequencer()
+createCubes(circlePoints)
 
 
+const lightCube = function (num) {
+    cubes.children.forEach(cube => {
+        cube.material.color.setHSL(0, 0, 0.2)
+    });
+
+    cubes.children[num].material.color.setHSL(0, 0, 1)
+}
+
+
+const rotateCubes = function () {
+    cubes.rotation.y = absTime * 0.1
+    cubes.rotation.x = absTime * -0.2
+}
+
+
+let currentStep = 0
+
+
+setInterval(function () {
+    if (currentStep >= cubes.children.length) {
+        currentStep = 0
+    } 
+
+    playNote(200)
+    lightCube(currentStep)
+
+
+    currentStep += 1
+}, 800)
 
 
 /*
@@ -302,10 +258,7 @@ let absTime
 function animate() {
     absTime = clock.getElapsedTime()
 
-    drawCanvas(absTime)
-
-    sequencer.movePlane()
-    sequencer.checkCollisions()
+    rotateCubes()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
