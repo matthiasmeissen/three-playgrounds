@@ -60,7 +60,7 @@ addButton()
 
 
 const playNote = function (freq) {
-    sound_dsp.setParamValue("/sound/Freq", freq)
+    sound_dsp.setParamValue("/sound/Pitch", freq)
     sound_dsp.setParamValue("/sound/Gate", 1.0)
 
     setTimeout(function () {
@@ -120,10 +120,17 @@ createCubes(circlePoints)
 
 const lightCube = function (num) {
     cubes.children.forEach(cube => {
-        cube.material.color.setHSL(0, 0, 0.2)
+        cube.material.color.setHSL(0, 0, 0.1)
     });
 
     cubes.children[num].material.color.setHSL(0, 0, 1)
+
+    plane.material.color.setHSL(0, 0, 1)
+
+    setTimeout(function() {
+        plane.material.color.setHSL(0, 0, 0)
+        cubes.children[num].material.color.setHSL(0, 0, 0.1)
+    }, 200)
 }
 
 
@@ -131,6 +138,15 @@ const rotateCubes = function () {
     cubes.rotation.y = absTime * 0.1
     cubes.rotation.x = absTime * -0.2
 }
+
+const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 80),
+    new THREE.MeshBasicMaterial({color: 'hsl(0, 100%, 0%)'})
+)
+
+plane.position.z = -4
+
+scene.add(plane)
 
 
 let currentStep = 0
@@ -141,7 +157,7 @@ setInterval(function () {
         currentStep = 0
     } 
 
-    playNote(200)
+    playNote(100)
     lightCube(currentStep)
 
 
