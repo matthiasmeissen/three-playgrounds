@@ -1,5 +1,6 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.132.2'
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js'
+import { RectAreaLightUniformsLib } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
 
 const canvas = document.querySelector('canvas.webgl')
@@ -65,7 +66,7 @@ const playNote = function (freq) {
 
     setTimeout(function () {
         sound_dsp.setParamValue("/sound/Gate", 0.0)
-    }, 200)
+    }, 80)
 }
 
 
@@ -115,23 +116,8 @@ const createCubes = function (points) {
     scene.add(cubes)
 }
 
-createCubes(circlePoints)
+//createCubes(circlePoints)
 
-
-const lightCube = function (num) {
-    cubes.children.forEach(cube => {
-        cube.material.color.setHSL(0, 0, 0.1)
-    });
-
-    cubes.children[num].material.color.setHSL(0, 0, 1)
-
-    plane.material.color.setHSL(0, 0, 1)
-
-    setTimeout(function() {
-        plane.material.color.setHSL(0, 0, 0)
-        cubes.children[num].material.color.setHSL(0, 0, 0.1)
-    }, 200)
-}
 
 
 const rotateCubes = function () {
@@ -146,23 +132,54 @@ const plane = new THREE.Mesh(
 
 plane.position.z = -4
 
-scene.add(plane)
+//scene.add(plane)
 
 
-let currentStep = 0
+const plane1 = new THREE.Mesh(
+    new THREE.PlaneGeometry(20, 20),
+    new THREE.MeshStandardMaterial({
+        color: 'hsl(0, 0%, 100%)', 
+        roughness: 1, 
+        metalness: 0,
+        side: THREE.DoubleSide
+    })
+)
+
+scene.add(plane1)
+
+
+RectAreaLightUniformsLib.init()
+
+const rectLight1 = new THREE.RectAreaLight(0x5d34f2, 0, 1, 1)
+rectLight1.position.set(0, 1, 0)
+rectLight1.lookAt(new THREE.Vector3())
+scene.add(rectLight1)
+
+const rectLight2 = new THREE.RectAreaLight(0x5d34f2, 0, 1, 1)
+rectLight2.position.set(0, -1, 0)
+rectLight2.lookAt(new THREE.Vector3())
+scene.add(rectLight2)
+
+
+const lightPlane = function (target) {
+    target.intensity = 1
+
+    setTimeout(function () {
+        target.intensity = 0
+    }, 100)
+}
 
 
 setInterval(function () {
-    if (currentStep >= cubes.children.length) {
-        currentStep = 0
-    } 
-
     playNote(100)
-    lightCube(currentStep)
-
-
-    currentStep += 1
+    lightPlane(rectLight1)
 }, 800)
+
+setInterval(function () {
+    playNote(200)
+    lightPlane(rectLight2)
+}, 600)
+
 
 
 /*
@@ -178,18 +195,18 @@ const lightParameters = {
 
 // Construction
 const lights = new THREE.Group()
-scene.add(lights)
+//scene.add(lights)
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
-scene.add(ambientLight)
+//scene.add(ambientLight)
 
 const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
 light1.position.set(2, 2, 4)
-lights.add(light1)
+//lights.add(light1)
 
 const light2 = new THREE.DirectionalLight(0xffffff, 0.8)
 light2.position.set(-2, 2, -4)
-lights.add(light2)
+//lights.add(light2)
 
 // Functions
 const rotateLights = () => {
