@@ -60,13 +60,9 @@ const addButton = function () {
 addButton()
 
 
-const playNote = function (freq) {
-    sound_dsp.setParamValue("/sound/Pitch", freq)
-    sound_dsp.setParamValue("/sound/Gate", 1.0)
-
-    setTimeout(function () {
-        sound_dsp.setParamValue("/sound/Gate", 0.0)
-    }, 80)
+const playNote = function (freq, gate) {
+    sound_dsp.setParamValue("/sound/Freq", freq)
+    sound_dsp.setParamValue("/sound/Gate", gate)
 }
 
 
@@ -78,108 +74,81 @@ const scene = new THREE.Scene()
     Geometry
 */
 
-const circle = new THREE.CircleGeometry(1, 8)
+class StaticObject {
+    constructor (mesh, pos, size) {
+        this.mesh = mesh
+        this.pos = pos
+        this.size = size
 
-
-const getPointsFromGeometry = function (geo) {
-    const pos = geo.attributes.position
-    const points = []
-
-    for (let i = 1; i < pos.count - 1; i++) {
-        const point = new THREE.Vector3().fromBufferAttribute(pos, i)
-        points.push(point)
+        this.addObject()
+        this.createBoundingBox()
     }
 
-    return points
+    addObject() {
+        this.mesh.position.set(this.pos.x, this.pos.y, this.pos.z)
+        this.mesh.scale.setScalar(this.size)
+        scene.add(this.mesh)
+    }
+
+    createBoundingBox() {
+        this.boundingBox = new THREE.Box3().setFromObject(this.mesh)
+    }
+
+    checkIntersection(target) {
+        this.intersection = this.boundingBox.intersectsBox(target)
+
+        if (this.intersection) {
+            this.mesh.material.color.setHSL(0, 0, 1)
+            playNote(200, 1.0)
+        } 
+        
+        if (!this.intersection && absTime > 1) {
+            this.mesh.material.color.setHSL(0, 0, 0.5)
+            playNote(200, 0.0)
+        }
+    }
 }
 
-const circlePoints = getPointsFromGeometry(circle)
+class CollissionBox {
+    constructor (size) {
+        this.size = size
 
-console.log(circlePoints)
+        this.addObject()
+        this.createBoundingBox()
+    }
 
-
-const cubes = new THREE.Group()
-
-const createCubes = function (points) {
-    points.forEach(point => {
-        const cube = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 1, 1),
-            new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
+    addObject() {
+        this.mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(0.01, 2, 2),
+            new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 50%)'})
         )
+        scene.add(this.mesh)
+    }
 
-        cube.position.set(point.x, point.y, point.z)
-        cube.scale.setScalar(0.2)
+    createBoundingBox() {
+        this.boundingBox = new THREE.Box3().setFromObject(this.mesh)
+    }
 
-        cubes.add(cube)
-    });
-
-    scene.add(cubes)
+    moveObject(speed) {
+        this.mesh.position.x = ((absTime * speed)%1 - 0.5) * 2.0
+        this.boundingBox = new THREE.Box3().setFromObject(this.mesh)
+    }
 }
 
-//createCubes(circlePoints)
+const collissionBox = new CollissionBox()
 
+console.log(collissionBox)
 
-
-const rotateCubes = function () {
-    cubes.rotation.y = absTime * 0.1
-    cubes.rotation.x = absTime * -0.2
-}
-
-const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 80),
-    new THREE.MeshBasicMaterial({color: 'hsl(0, 100%, 0%)'})
+const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 50%)'})
 )
 
-plane.position.z = -4
+const pos = new THREE.Vector3(0, 0, 0)
 
-//scene.add(plane)
+const staticObject1 = new StaticObject(mesh, pos, 0.2)
 
-
-const plane1 = new THREE.Mesh(
-    new THREE.PlaneGeometry(20, 20),
-    new THREE.MeshStandardMaterial({
-        color: 'hsl(0, 0%, 100%)', 
-        roughness: 1, 
-        metalness: 0,
-        side: THREE.DoubleSide
-    })
-)
-
-scene.add(plane1)
-
-
-RectAreaLightUniformsLib.init()
-
-const rectLight1 = new THREE.RectAreaLight(0x5d34f2, 0, 1, 1)
-rectLight1.position.set(0, 1, 0)
-rectLight1.lookAt(new THREE.Vector3())
-scene.add(rectLight1)
-
-const rectLight2 = new THREE.RectAreaLight(0x5d34f2, 0, 1, 1)
-rectLight2.position.set(0, -1, 0)
-rectLight2.lookAt(new THREE.Vector3())
-scene.add(rectLight2)
-
-
-const lightPlane = function (target) {
-    target.intensity = 1
-
-    setTimeout(function () {
-        target.intensity = 0
-    }, 100)
-}
-
-
-setInterval(function () {
-    playNote(100)
-    lightPlane(rectLight1)
-}, 800)
-
-setInterval(function () {
-    playNote(200)
-    lightPlane(rectLight2)
-}, 600)
-
+console.log(staticObject1)
 
 
 /*
@@ -187,32 +156,20 @@ setInterval(function () {
 */
 
 
-// Parameters
-const lightParameters = {
-    rotate: true,
-    speed: 0.2
-}
-
 // Construction
 const lights = new THREE.Group()
-//scene.add(lights)
+scene.add(lights)
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
-//scene.add(ambientLight)
+scene.add(ambientLight)
 
 const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
 light1.position.set(2, 2, 4)
-//lights.add(light1)
+lights.add(light1)
 
 const light2 = new THREE.DirectionalLight(0xffffff, 0.8)
 light2.position.set(-2, 2, -4)
-//lights.add(light2)
-
-// Functions
-const rotateLights = () => {
-    lights.rotation.y = absTime * lightParameters.speed
-    lights.rotation.x = absTime * lightParameters.speed
-}
+lights.add(light2)
 
 
 /*
@@ -291,7 +248,10 @@ let absTime
 function animate() {
     absTime = clock.getElapsedTime()
 
-    rotateCubes()
+
+    collissionBox.moveObject(0.2)
+
+    staticObject1.checkIntersection(collissionBox.boundingBox)
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
