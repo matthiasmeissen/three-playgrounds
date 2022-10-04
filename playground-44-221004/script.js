@@ -74,33 +74,22 @@ const scene = new THREE.Scene()
     Geometry
 */
 
-class StaticObject {
-    constructor (mesh, pos, size) {
-        this.mesh = mesh
-        this.pos = pos
-        this.size = size
+const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(80, 10),
+    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 2%)'})
+)
 
-        this.addObject()
-        this.createBoundingBox()
-    }
+floor.position.y = -1
+floor.rotation.x = Math.PI * -0.5
 
-    addObject() {
-        this.mesh.position.set(this.pos.x, this.pos.y, this.pos.z)
-        this.mesh.scale.setScalar(this.size)
-        scene.add(this.mesh)
-    }
+scene.add(floor)
 
-    createBoundingBox() {
-        this.boundingBox = new THREE.Box3().setFromObject(this.mesh)
-    }
-}
 
-class CollissionBox {
+class movePlane {
     constructor (size) {
         this.size = size
 
         this.addObject()
-        this.createBoundingBox()
     }
 
     addObject() {
@@ -110,59 +99,24 @@ class CollissionBox {
         )
         scene.add(this.mesh)
     }
-
-    createBoundingBox() {
-        this.boundingBox = new THREE.Box3().setFromObject(this.mesh)
-    }
-
-    moveObject(speed, direction) {
-        speed = ((absTime * speed)%1 - 0.5) * 2.0
-        this.mesh.position.set(speed * direction[0], speed * direction[1], speed * direction[2])
-        this.boundingBox = new THREE.Box3().setFromObject(this.mesh)
-    }
-
-    checkIntersection(target) {
-        this.intersection = this.boundingBox.intersectsBox(target.boundingBox)
-    }
-
-    changeColor(target) {
-        if (this.intersection && absTime > 1) {
-            target.mesh.material.color.setHSL(0, 0, 1)
-        } else if (!this.intersection && absTime > 1) {
-            target.mesh.material.color.setHSL(0, 0, 0.5)
-        }
-    }
-
-    changeSize(target) {
-        if (this.intersection && absTime > 1) {
-            target.mesh.material.emissive.setHSL(0, 1, 1)
-        } else if (!this.intersection && absTime > 1) {
-            target.mesh.material.emissive.setHSL(0, 1, 0)
-        }
-    }
-
-    playNote() {
-        if (this.intersection && absTime > 1) {
-            playNote(200, 1.0)
-        } else if (!this.intersection && absTime > 1) {
-            playNote(200, 0.0)
-        }
-    }
 }
 
-const collissionBox1 = new CollissionBox([0.01, 2, 2])
-const collissionBox2 = new CollissionBox([2, 0.01, 2])
+const planes = []
 
-const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 50%)'})
-)
+for (let i = 0; i < 40; i++) {
+    const plane = new movePlane([0.01, 2, 2])
+    planes.push(plane)
+}
 
-const pos = new THREE.Vector3(0, 0, 0)
+const movePlanes = function () {
+    const speed = ((absTime * 0.2) % 1 - 0.5) * 2.0
 
-const staticObject1 = new StaticObject(mesh, pos, 0.2)
-
-console.log(staticObject1)
+    planes.forEach((plane, index) => {
+        plane.mesh.position.x = speed * index
+        plane.mesh.position.t = index
+        plane.mesh.material.color.setHSL(index / planes.length, 1, 0.5)
+    });
+}
 
 
 /*
@@ -262,16 +216,7 @@ let absTime
 function animate() {
     absTime = clock.getElapsedTime()
 
-
-    collissionBox1.moveObject(0.2, [1, 0, 0])
-    collissionBox2.moveObject(0.1, [0, -1, 0])
-
-    collissionBox1.checkIntersection(staticObject1)
-    collissionBox1.changeColor(staticObject1)
-    collissionBox1.playNote()
-
-    collissionBox2.checkIntersection(staticObject1)
-    collissionBox2.changeSize(staticObject1)
+    movePlanes()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
