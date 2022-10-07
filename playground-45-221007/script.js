@@ -74,49 +74,114 @@ const scene = new THREE.Scene()
     Geometry
 */
 
-const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(80, 10),
-    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 2%)'})
-)
 
-floor.position.y = -1
-floor.rotation.x = Math.PI * -0.5
+class Step {
+    constructor (x, y, z, gx = 0) {
+        this.stepSize = [x, y, z]
+        this.stepGroup = new THREE.Group()
+        this.groupPositionX = gx
+        this.trigSize = 0.2
 
-scene.add(floor)
-
-
-class movePlane {
-    constructor (size) {
-        this.size = size
-
-        this.addObject()
+        this.addBox()
     }
 
-    addObject() {
-        this.mesh = new THREE.Mesh(
-            new THREE.BoxGeometry(this.size[0], this.size[1], this.size[2]),
+    addBox () {
+        this.box = new THREE.Mesh(
+            new THREE.BoxGeometry(this.stepSize[0], this.stepSize[1] + this.trigSize, this.stepSize[2] + this.trigSize),
+            new THREE.MeshBasicMaterial({color: 'hsl(0, 0%, 20%)', wireframe: true})
+        )
+
+        this.stepGroup.add(this.box)
+
+        scene.add(this.stepGroup)
+        this.stepGroup.position.x = this.groupPositionX
+    }
+
+    addTrig () {
+        this.trig = new THREE.Mesh(
+            new THREE.BoxGeometry(this.stepSize[0], this.trigSize, this.trigSize),
             new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 50%)'})
         )
-        scene.add(this.mesh)
+        
+        this.stepGroup.add(this.trig)
+    }
+
+    setTrig (y, z) {
+        this.valueY = y
+        this.valueZ = z
+
+        y = -this.stepSize[1] * 0.5 + y
+        z = -this.stepSize[2] * 0.5 + z
+
+        this.trig.position.y = y
+        this.trig.position.z = z
+    }
+
+    activeColor (state) {
+        if (state) {
+            this.box.material.color.setHSL(0, 0, 1)
+            this.trig.material.color.setHSL(0, 0, 1)
+        } else {
+            this.box.material.color.setHSL(0, 0, 0.2)
+            this.trig.material.color.setHSL(0, 0, 0.5)
+        }
     }
 }
 
-const planes = []
 
-for (let i = 0; i < 40; i++) {
-    const plane = new movePlane([0.01, 2, 2])
-    planes.push(plane)
+class Sequencer {
+    constructor (numSteps) {
+        this.numSteps = numSteps
+        this.currentStep = 0
+        this.steps = []
+        
+        this.addSteps(this.numSteps)
+    }
+
+    addSteps (num) {
+        const s = 1 / num
+
+        for (let i = 0; i < num; i++) {
+            const step = new Step(s, 1, 1, (i * s) + (s * 0.5) - 0.5)
+            step.addTrig()
+            step.setTrig(Math.random(), Math.random()) 
+
+            this.steps.push(step)
+        }
+    }
+
+    nextStep () {
+        if (this.currentStep > this.numSteps - 1) {
+            this.currentStep = 0
+        }
+
+        this.steps.forEach(step => {
+            step.activeColor(false)
+        });
+
+        this.steps[this.currentStep].activeColor(true)
+
+        this.playSound(this.steps[this.currentStep])
+
+        this.currentStep += 1
+    }
+
+    playSound (target) {
+        const freq = target.valueY * 100 + 200
+
+        playNote(freq, 1)
+
+        setTimeout(function () {
+            playNote(freq, 0)
+        }, 200)
+    }
 }
 
-const movePlanes = function () {
-    const speed = ((absTime * 0.2) % 1 - 0.5) * 2.0
+const sequencer = new Sequencer(4)
 
-    planes.forEach((plane, index) => {
-        plane.mesh.position.x = speed * index
-        plane.mesh.position.t = index
-        plane.mesh.material.color.setHSL(index / planes.length, 1, 0.5)
-    });
-}
+setInterval(function () {
+    sequencer.nextStep()
+}, 800)
 
 
 /*
@@ -216,7 +281,7 @@ let absTime
 function animate() {
     absTime = clock.getElapsedTime()
 
-    movePlanes()
+
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
