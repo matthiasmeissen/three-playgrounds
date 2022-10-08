@@ -81,6 +81,8 @@ class Step {
         this.stepGroup = new THREE.Group()
         this.groupPositionX = gx
         this.trigSize = 0.2
+        this.values = [0, 0]
+        this.pointerValues = [0, 0]
 
         this.addBox()
     }
@@ -106,9 +108,14 @@ class Step {
         this.stepGroup.add(this.trig)
     }
 
-    setTrig (y, z) {
-        this.valueY = y
-        this.valueZ = z
+    setTrig (set) {
+        if (set) {
+            this.values[0] = set[0]
+            this.values[1] = set[1]
+        }
+
+        let y = this.values[0]
+        let z = this.values[1]
 
         y = -this.stepSize[1] * 0.5 + y
         z = -this.stepSize[2] * 0.5 + z
@@ -119,11 +126,26 @@ class Step {
 
     activeColor (state) {
         if (state) {
-            this.box.material.color.setHSL(0, 0, 1)
             this.trig.material.color.setHSL(0, 0, 1)
         } else {
-            this.box.material.color.setHSL(0, 0, 0.2)
             this.trig.material.color.setHSL(0, 0, 0.5)
+        }
+    }
+
+    checkPointer () {
+        this.intersects = raycaster.intersectObject(this.box)
+
+        const target = this.intersects[0]
+
+        if (this.intersects.length > 0) {
+            if (target.faceIndex == 8 || target.faceIndex == 9) {
+                this.pointerValues[0] = target.uv.y
+            }
+            if (target.faceIndex == 4 || target.faceIndex == 5) {
+                this.pointerValues[1] = 1 - target.uv.y
+            }
+
+            this.setTrig(this.pointerValues)
         }
     }
 }
@@ -144,7 +166,7 @@ class Sequencer {
         for (let i = 0; i < num; i++) {
             const step = new Step(s, 1, 1, (i * s) + (s * 0.5) - 0.5)
             step.addTrig()
-            step.setTrig(Math.random(), Math.random()) 
+            step.setTrig([Math.random(), Math.random()]) 
 
             this.steps.push(step)
         }
@@ -169,10 +191,10 @@ class Sequencer {
     playSound (target) {
         const freq = target.valueY * 100 + 200
 
-        playNote(freq, 1)
+        //playNote(freq, 1)
 
         setTimeout(function () {
-            playNote(freq, 0)
+            //playNote(freq, 0)
         }, 200)
     }
 }
@@ -182,6 +204,10 @@ const sequencer = new Sequencer(4)
 setInterval(function () {
     sequencer.nextStep()
 }, 800)
+
+
+const raycaster = new THREE.Raycaster();
+
 
 
 /*
@@ -267,6 +293,15 @@ const cursor = new THREE.Vector2()
 window.addEventListener('mousemove', function (event) {
     cursor.x = (event.clientX / window.innerWidth) * 2 - 1
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
+})
+
+
+window.addEventListener('mousedown', function () {
+    raycaster.setFromCamera( cursor, camera );
+
+    sequencer.steps.forEach(step => {
+        step.checkPointer()
+    });
 })
 
 
