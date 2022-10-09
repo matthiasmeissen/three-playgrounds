@@ -156,6 +156,7 @@ class Sequencer {
         this.numSteps = numSteps
         this.currentStep = 0
         this.steps = []
+        this.play = true
         
         this.addSteps(this.numSteps)
     }
@@ -199,14 +200,51 @@ class Sequencer {
     }
 }
 
+
+class MainClock {
+    constructor () {
+        this.running = true
+        this.prevStep = 0
+        this.currentStep = 0
+    }
+
+    calc (speed = 1.0, steps) {
+        let counter = Math.floor(clock.getElapsedTime() * 2 * speed)
+
+        if (steps) {
+            counter = counter % steps
+        }
+
+        this.stepTrigger(counter)
+
+        return counter
+    }
+
+    stepTrigger (step) {
+        this.currentStep = step
+
+        if (this.currentStep > this.prevStep || this.currentStep == 0 && this.prevStep > 0) {
+            console.log('step')
+        } 
+
+        this.prevStep = this.currentStep
+    }
+}
+
+
 const sequencer = new Sequencer(4)
 
+const mainClock = new MainClock()
+
 setInterval(function () {
-    sequencer.nextStep()
+    if (sequencer.play) {
+        sequencer.nextStep()
+    }
 }, 800)
 
 
 const raycaster = new THREE.Raycaster();
+
 
 
 
@@ -316,7 +354,7 @@ let absTime
 function animate() {
     absTime = clock.getElapsedTime()
 
-
+    mainClock.calc(1.0, 4.0)
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
