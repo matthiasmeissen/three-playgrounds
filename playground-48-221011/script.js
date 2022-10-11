@@ -76,175 +76,104 @@ const scene = new THREE.Scene()
 
 
 class Step {
-    constructor (x, y, z, gx = 0) {
-        this.stepSize = [x, y, z]
-        this.stepGroup = new THREE.Group()
-        this.groupPositionX = gx
-        this.trigSize = 0.2
-        this.values = [0, 0]
-        this.pointerValues = [0, 0]
+    constructor (a, b) {
+        this.a = a,
+        this.b = b
+    }
+}
 
-        this.addBox()
+class Box {
+    constructor (size) {
+        this.boxSize = {x: 0.2, y: 1, z: 1}
+        this.trigSize = {x: 0.2, y: 0.2, z: 0.2}
+
+        this.createBox(this.boxSize)
+        this.createTrig(this.trigSize)
     }
 
-    addBox () {
-        this.box = new THREE.Mesh(
-            new THREE.BoxGeometry(this.stepSize[0], this.stepSize[1] + this.trigSize, this.stepSize[2] + this.trigSize),
+    createBox (size) {
+        const box = new THREE.Mesh(
+            new THREE.BoxGeometry(size.x, size.y + this.trigSize.y, size.z + this.trigSize.z),
             new THREE.MeshBasicMaterial({color: 'hsl(0, 0%, 20%)', wireframe: true})
         )
 
-        this.stepGroup.add(this.box)
-
-        scene.add(this.stepGroup)
-        this.stepGroup.position.x = this.groupPositionX
+        this.boxGroup = new THREE.Group()
+        this.boxGroup.add(box)
+        scene.add(this.boxGroup)
     }
 
-    addTrig () {
+    setBox (x) {
+        this.boxGroup.position.x = this.boxSize.x * x
+    }
+
+    createTrig (size) {
         this.trig = new THREE.Mesh(
-            new THREE.BoxGeometry(this.stepSize[0], this.trigSize, this.trigSize),
+            new THREE.BoxGeometry(size.x, size.y, size.z),
             new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 50%)'})
         )
-        
-        this.stepGroup.add(this.trig)
+
+        this.boxGroup.add(this.trig)
     }
 
-    setTrig (set) {
-        if (set) {
-            this.values[0] = set[0]
-            this.values[1] = set[1]
-        }
-
-        let y = this.values[0]
-        let z = this.values[1]
-
-        y = -this.stepSize[1] * 0.5 + y
-        z = -this.stepSize[2] * 0.5 + z
-
-        this.trig.position.y = y
-        this.trig.position.z = z
+    setTrig (y, z) {
+        this.trig.position.y = this.boxSize.y * -0.5 + y
+        this.trig.position.z = this.boxSize.z * -0.5 + z
     }
 
-    activeColor (state) {
+    highlightTrig (state) {
         if (state) {
             this.trig.material.color.setHSL(0, 0, 1)
         } else {
             this.trig.material.color.setHSL(0, 0, 0.5)
         }
     }
-
-    checkPointer () {
-        this.intersects = raycaster.intersectObject(this.box)
-
-        const target = this.intersects[0]
-
-        if (this.intersects.length > 0) {
-            if (target.faceIndex == 8 || target.faceIndex == 9) {
-                this.pointerValues[0] = target.uv.y
-            }
-            if (target.faceIndex == 4 || target.faceIndex == 5) {
-                this.pointerValues[1] = 1 - target.uv.y
-            }
-
-            this.setTrig(this.pointerValues)
-        }
-    }
 }
 
 
-class Sequencer {
-    constructor (numSteps) {
-        this.numSteps = numSteps
-        this.currentStep = 0
-        this.steps = []
-        this.play = true
-        
-        this.addSteps(this.numSteps)
+const steps = []
+
+for (let i = 0; i < 4; i++) {
+    const step = {
+        values: new Step(Math.random(), Math.random()),
+        box: new Box()
     }
 
-    addSteps (num) {
-        const s = 1 / num
+    step.box.setBox(i)
+    step.box.setTrig(step.values.a, step.values.b)
 
-        for (let i = 0; i < num; i++) {
-            const step = new Step(s, 1, 1, (i * s) + (s * 0.5) - 0.5)
-            step.addTrig()
-            step.setTrig([Math.random(), Math.random()]) 
-
-            this.steps.push(step)
-        }
-    }
-
-    nextStep () {
-        if (this.currentStep > this.numSteps - 1) {
-            this.currentStep = 0
-        }
-
-        this.steps.forEach(step => {
-            step.activeColor(false)
-        });
-
-        this.steps[this.currentStep].activeColor(true)
-
-        this.playSound(this.steps[this.currentStep])
-
-        this.currentStep += 1
-    }
-
-    playSound (target) {
-        const freq = target.valueY * 100 + 200
-
-        //playNote(freq, 1)
-
-        setTimeout(function () {
-            //playNote(freq, 0)
-        }, 200)
-    }
+    steps.push(step)
 }
 
+const setActiveBox = function (num) {
+    steps.forEach(step => {
+        step.box.highlightTrig(false)
+    });
 
-class MainClock {
-    constructor () {
-        this.running = true
-        this.prevStep = 0
-        this.currentStep = 0
-    }
-
-    calc (speed = 1.0, steps) {
-        let counter = Math.floor(clock.getElapsedTime() * 2 * speed)
-
-        if (steps) {
-            counter = counter % steps
-        }
-
-        this.stepTrigger(counter)
-
-        return counter
-    }
-
-    stepTrigger (step) {
-        this.currentStep = step
-
-        if (this.currentStep > this.prevStep || this.currentStep == 0 && this.prevStep > 0) {
-            console.log('step')
-        } 
-
-        this.prevStep = this.currentStep
-    }
+    steps[num].box.highlightTrig(true)
 }
 
+const playSound = function (val) {
+    const freq = val * 100 + 200
 
-const sequencer = new Sequencer(4)
+    playNote(freq, 1)
 
-const mainClock = new MainClock()
+    setTimeout(function () {
+        playNote(freq, 0)
+    }, 200)
+}
+
+let currentStep = 0
 
 setInterval(function () {
-    if (sequencer.play) {
-        sequencer.nextStep()
+    setActiveBox(currentStep)
+    playSound(steps[currentStep].values.a)
+
+    currentStep += 1
+
+    if (currentStep > steps.length - 1) {
+        currentStep = 0
     }
-}, 800)
-
-
-const raycaster = new THREE.Raycaster();
-
+}, 400)
 
 
 
@@ -334,15 +263,6 @@ window.addEventListener('mousemove', function (event) {
 })
 
 
-window.addEventListener('mousedown', function () {
-    raycaster.setFromCamera( cursor, camera );
-
-    sequencer.steps.forEach(step => {
-        step.checkPointer()
-    });
-})
-
-
 // Clock
 
 const clock = new THREE.Clock()
@@ -354,7 +274,7 @@ let absTime
 function animate() {
     absTime = clock.getElapsedTime()
 
-    mainClock.calc(1.0, 4.0)
+
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
