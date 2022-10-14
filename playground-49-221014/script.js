@@ -1,6 +1,5 @@
 import * as THREE from 'https://cdn.skypack.dev/three@0.132.2'
 import { OrbitControls } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js'
-import { RectAreaLightUniformsLib } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/lights/RectAreaLightUniformsLib.js';
 
 
 const canvas = document.querySelector('canvas.webgl')
@@ -92,13 +91,15 @@ class Box {
     }
 
     createBox (size) {
-        const box = new THREE.Mesh(
+        this.box = new THREE.Mesh(
             new THREE.BoxGeometry(size.x, size.y + this.trigSize.y, size.z + this.trigSize.z),
-            new THREE.MeshBasicMaterial({color: 'hsl(0, 0%, 20%)', wireframe: true})
+            new THREE.MeshBasicMaterial({color: 'hsl(0, 0%, 20%)', transparent: true, wireframe: true})
         )
 
+        console.log(this.box)
+
         this.boxGroup = new THREE.Group()
-        this.boxGroup.add(box)
+        this.boxGroup.add(this.box)
         scene.add(this.boxGroup)
     }
 
@@ -127,7 +128,30 @@ class Box {
             this.trig.material.color.setHSL(0, 0, 0.5)
         }
     }
+
+    checkHover (press) {
+        this.intersects = raycaster.intersectObject(this.box)
+
+        const target = this.intersects[0]
+
+        this.box.material.wireframe = true
+        this.box.material.opacity = 1.0
+
+        if (this.intersects.length > 0) {
+            if (target.faceIndex == 8 || target.faceIndex == 9) {
+                this.box.material.wireframe = false
+                this.box.material.opacity = 0.4
+            }
+            
+            if (target.faceIndex == 4 || target.faceIndex == 5) {
+                this.box.material.wireframe = false
+                this.box.material.opacity = 0.4
+            }
+        }
+    }
 }
+
+const raycaster = new THREE.Raycaster()
 
 
 const steps = []
@@ -152,8 +176,16 @@ const setActiveBox = function (num) {
     steps[num].box.highlightTrig(true)
 }
 
+const checkPointers = function () {
+    raycaster.setFromCamera( cursor, camera );
+
+    steps.forEach(step => {
+        step.box.checkHover()
+    });
+}
+
 const playSound = function (val) {
-    const freq = val * 100 + 200
+    const freq = scaleFreq[Math.floor(scaleFreq.length * val)]
 
     playNote(freq, 1)
 
@@ -174,6 +206,15 @@ setInterval(function () {
         currentStep = 0
     }
 }, 400)
+
+
+const scale = Tonal.Scale.get("C4 phrygian").notes
+const scaleFreq = []
+
+scale.forEach(note => {
+    const freq = Tonal.Note.freq(note)
+    scaleFreq.push(freq)
+});
 
 
 
@@ -260,7 +301,10 @@ const cursor = new THREE.Vector2()
 window.addEventListener('mousemove', function (event) {
     cursor.x = (event.clientX / window.innerWidth) * 2 - 1
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
+
+    checkPointers()
 })
+
 
 
 // Clock
