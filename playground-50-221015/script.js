@@ -74,147 +74,98 @@ const scene = new THREE.Scene()
 */
 
 
+const group1 = new THREE.Group()
+group1.scale.setScalar(0.4)
+scene.add(group1)
+
+
 class Step {
-    constructor (a, b) {
-        this.a = a,
-        this.b = b
-    }
-}
+    constructor (p) {
+        this.pos = new THREE.Vector3(p.x, p.y, p.z)
+        this.np = new THREE.Vector3(0, 0, 0)
 
-class Box {
-    constructor (size) {
-        this.boxSize = {x: 0.2, y: 1, z: 1}
-        this.trigSize = {x: 0.2, y: 0.2, z: 0.2}
-
-        this.createBox(this.boxSize)
-        this.createTrig(this.trigSize)
+        this.createBox()
     }
 
-    createBox (size) {
+    createBox () {
         this.box = new THREE.Mesh(
-            new THREE.BoxGeometry(size.x, size.y + this.trigSize.y, size.z + this.trigSize.z),
-            new THREE.MeshBasicMaterial({color: 'hsl(0, 0%, 20%)', transparent: true, wireframe: true})
+            new THREE.BoxGeometry(1, 1, 1),
+            new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
         )
-
-        console.log(this.box)
-
-        this.boxGroup = new THREE.Group()
-        this.boxGroup.add(this.box)
-        scene.add(this.boxGroup)
+        this.box.position.set(this.pos.x, this.pos.y, this.pos.z)
+        group1.add(this.box)
     }
 
-    setBox (x) {
-        this.boxGroup.position.x = this.boxSize.x * x
-    }
-
-    createTrig (size) {
-        this.trig = new THREE.Mesh(
-            new THREE.BoxGeometry(size.x, size.y, size.z),
-            new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 50%)'})
-        )
-
-        this.boxGroup.add(this.trig)
-    }
-
-    setTrig (y, z) {
-        this.trig.position.y = this.boxSize.y * -0.5 + y
-        this.trig.position.z = this.boxSize.z * -0.5 + z
-    }
-
-    highlightTrig (state) {
-        if (state) {
-            this.trig.material.color.setHSL(0, 0, 1)
-        } else {
-            this.trig.material.color.setHSL(0, 0, 0.5)
-        }
-    }
-
-    checkHover (press) {
+    getSide () {
         this.intersects = raycaster.intersectObject(this.box)
-
-        const target = this.intersects[0]
-
-        this.box.material.wireframe = true
-        this.box.material.opacity = 1.0
-
         if (this.intersects.length > 0) {
-            if (target.faceIndex == 8 || target.faceIndex == 9) {
-                this.box.material.wireframe = false
-                this.box.material.opacity = 0.4
+            this.np = {
+                x: this.pos.x + this.intersects[0].face.normal.x,
+                y: this.pos.y + this.intersects[0].face.normal.y,
+                z: this.pos.z + this.intersects[0].face.normal.z
             }
-            
-            if (target.faceIndex == 4 || target.faceIndex == 5) {
-                this.box.material.wireframe = false
-                this.box.material.opacity = 0.4
-            }
+            setPreviewCube(this.np)
         }
     }
 }
 
-const raycaster = new THREE.Raycaster()
+
+
+const group2 = new THREE.Group()
+group2.scale.setScalar(0.4)
+scene.add(group2)
+
+const previewCube = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshBasicMaterial({
+        color: 'hsl(0, 100%, 50%)', 
+        transparent: true,
+        opacity: 0.2
+    })
+)
+
+group2.add(previewCube)
+
+const setPreviewCube = function (p) {
+    previewCube.position.set(p.x, p.y, p.z)
+}
+
 
 
 const steps = []
 
-for (let i = 0; i < 4; i++) {
-    const step = {
-        values: new Step(Math.random(), Math.random()),
-        box: new Box()
-    }
-
-    step.box.setBox(i)
-    step.box.setTrig(step.values.a, step.values.b)
-
-    steps.push(step)
+const addStep = function (p) {
+    const box = new Step(p)
+    steps.push(box)
 }
 
-const setActiveBox = function (num) {
+const getSides = function () {
     steps.forEach(step => {
-        step.box.highlightTrig(false)
-    });
-
-    steps[num].box.highlightTrig(true)
-}
-
-const checkPointers = function () {
-    raycaster.setFromCamera( cursor, camera );
-
-    steps.forEach(step => {
-        step.box.checkHover()
+        step.getSide()
     });
 }
 
-const playSound = function (val) {
-    const freq = scaleFreq[Math.floor(scaleFreq.length * val)]
 
-    playNote(freq, 1)
+addStep({x: 0, y: 0, z: 0})
 
-    setTimeout(function () {
-        playNote(freq, 0)
-    }, 200)
-}
+const raycaster = new THREE.Raycaster()
+
 
 let currentStep = 0
 
 setInterval(function () {
-    setActiveBox(currentStep)
-    playSound(steps[currentStep].values.a)
-
     currentStep += 1
 
     if (currentStep > steps.length - 1) {
         currentStep = 0
     }
+
+    steps.forEach(step => {
+        step.box.material.color.setHSL(0, 0, 0.2)
+    });
+
+    steps[currentStep].box.material.color.setHSL(0, 1, 1)
 }, 400)
-
-
-const scale = Tonal.Scale.get("C4 phrygian").notes
-const scaleFreq = []
-
-scale.forEach(note => {
-    const freq = Tonal.Note.freq(note)
-    scaleFreq.push(freq)
-});
 
 
 
@@ -302,7 +253,18 @@ window.addEventListener('mousemove', function (event) {
     cursor.x = (event.clientX / window.innerWidth) * 2 - 1
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
 
-    checkPointers()
+    raycaster.setFromCamera( cursor, camera );
+
+    getSides()
+})
+
+
+window.addEventListener('mousedown', function () {
+    steps.forEach(step => {
+        if (step.intersects.length > 0) {
+            addStep(previewCube.position)
+        }
+    });
 })
 
 
