@@ -201,10 +201,7 @@ const getNote = function (base, num, step) {
     console.log(note)
 
     let freq = Tonal.Note.freq(note)
-
     freq = freq.toFixed(0)
-
-    console.log(freq)
 
     return freq
 }
