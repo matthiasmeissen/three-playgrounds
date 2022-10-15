@@ -145,11 +145,12 @@ const getSides = function () {
     });
 }
 
+let allowAdd = true
+
 
 addStep({x: 0, y: 0, z: 0})
 
 const raycaster = new THREE.Raycaster()
-
 
 let currentStep = 0
 
@@ -160,12 +161,53 @@ setInterval(function () {
         currentStep = 0
     }
 
+    const freq = getNote("C", 4, steps[currentStep])
+
+    playNote(freq, 1)
+
+    setTimeout(function () {
+        playNote(freq, 0)
+    }, 100)
+
     steps.forEach(step => {
         step.box.material.color.setHSL(0, 0, 0.2)
     });
 
     steps[currentStep].box.material.color.setHSL(0, 1, 1)
-}, 400)
+}, 200)
+
+
+const scale = Tonal.Scale.get("C1 major").intervals
+
+
+const getNote = function (base, num, step) {
+    const transUp = scale[Math.abs(step.pos.x)]
+    const transDown = scale.reverse()[Math.abs(step.pos.x)]
+
+    let note = base + String(num)
+
+    if (step.pos.x > 0) {
+        note = Tonal.Note.transpose(base + String(num), transUp)
+    } else if (step.pos.x < 0) {
+        note = Tonal.Note.transpose(base + String(num - 1), transDown)
+    }
+
+    if (step.pos.y == 1) {
+        note = Tonal.Note.transpose(note, "P8")
+    } else if (step.pos.y == 2) {
+        note = Tonal.Note.transpose(note, "P15")
+    }
+
+    console.log(note)
+
+    let freq = Tonal.Note.freq(note)
+
+    freq = freq.toFixed(0)
+
+    console.log(freq)
+
+    return freq
+}
 
 
 
@@ -260,9 +302,11 @@ window.addEventListener('mousemove', function (event) {
 
 
 window.addEventListener('mousedown', function () {
+    allowAdd = true
     steps.forEach(step => {
-        if (step.intersects.length > 0) {
+        if (step.intersects.length > 0 && allowAdd) {
             addStep(previewCube.position)
+            allowAdd = false
         }
     });
 })
