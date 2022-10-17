@@ -161,7 +161,7 @@ setInterval(function () {
         currentStep = 0
     }
 
-    const freq = getNote("C", 4, steps[currentStep])
+    const freq = notes.getNote(steps[currentStep].pos)
 
     playNote(freq, 1)
 
@@ -177,34 +177,42 @@ setInterval(function () {
 }, 200)
 
 
-const scale = Tonal.Scale.get("C1 major").intervals
 
-
-const getNote = function (base, num, step) {
-    const transUp = scale[Math.abs(step.pos.x)]
-    const transDown = scale.reverse()[Math.abs(step.pos.x)]
-
-    let note = base + String(num)
-
-    if (step.pos.x > 0) {
-        note = Tonal.Note.transpose(base + String(num), transUp)
-    } else if (step.pos.x < 0) {
-        note = Tonal.Note.transpose(base + String(num - 1), transDown)
+class Notes {
+    constructor (scale) {
+        this.scale = Tonal.Scale.get(scale)
+        this.initialNote = scale.slice(0, 2)
     }
 
-    if (step.pos.y == 1) {
-        note = Tonal.Note.transpose(note, "P8")
-    } else if (step.pos.y == 2) {
-        note = Tonal.Note.transpose(note, "P15")
+    getNote (pos) {
+        this.note = this.initialNote
+
+        if (pos.x > 0) {
+            this.note = this.scale.notes[pos.x]
+        } else if (pos.x < 0) {
+            let s = this.scale.notes.map(Tonal.Note.transposeBy("-8P"))
+            s = s.reverse()
+            this.note = s[Math.abs(pos.x + 1)]
+        }
+
+        if (pos.y > 0) {
+            for (let i = 0; i < pos.y; i++) {
+                this.note = Tonal.Note.transpose(this.note, "8P")          
+            }
+        } else if (pos.y < 0) {
+            for (let i = 0; i < Math.abs(pos.y); i++) {
+                this.note = Tonal.Note.transpose(this.note, "-8P")          
+            }
+        }
+
+        this.freq = Tonal.Note.freq(this.note)
+
+        return this.freq
     }
-
-    console.log(note)
-
-    let freq = Tonal.Note.freq(note)
-    freq = freq.toFixed(0)
-
-    return freq
 }
+
+const notes = new Notes('C2 major')
+
 
 
 
