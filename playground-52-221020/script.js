@@ -306,12 +306,34 @@ window.addEventListener('mousemove', function (event) {
 })
 
 
+let allowDelete = false
+
+window.addEventListener('keydown', function (e) {
+    if (e.keyCode == 68) {
+        allowDelete = true
+    }
+})
+
+window.addEventListener('keyup', function (e) {
+    if (e.keyCode == 68) {
+        allowDelete = false
+    }
+})
+
+
 window.addEventListener('mousedown', function () {
     allowAdd = true
-    steps.forEach(step => {
+    steps.forEach((step, index) => {
         if (step.intersects.length > 0 && allowAdd) {
-            addStep(previewCube.position)
-            allowAdd = false
+            if (allowDelete) {
+                steps.splice(index, 1)
+                step.box.geometry.dispose();
+                step.box.material.dispose();
+                group1.remove(step.box);
+            } else {
+                addStep(previewCube.position)
+                allowAdd = false
+            }
         }
     });
 })
