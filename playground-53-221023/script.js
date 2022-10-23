@@ -75,143 +75,115 @@ const scene = new THREE.Scene()
 
 
 const group1 = new THREE.Group()
-group1.scale.setScalar(0.4)
 scene.add(group1)
 
+group1.scale.setScalar(0.4)
 
-class Step {
-    constructor (p) {
-        this.pos = new THREE.Vector3(p.x, p.y, p.z)
-        this.np = new THREE.Vector3(0, 0, 0)
 
-        this.createBox()
-    }
-
-    createBox () {
-        this.box = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 1, 1),
-            new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
-        )
-        this.box.position.set(this.pos.x, this.pos.y, this.pos.z)
-        group1.add(this.box)
-    }
-
-    getSide () {
-        this.intersects = raycaster.intersectObject(this.box)
-        if (this.intersects.length > 0) {
-            this.np = {
-                x: this.pos.x + this.intersects[0].face.normal.x,
-                y: this.pos.y + this.intersects[0].face.normal.y,
-                z: this.pos.z + this.intersects[0].face.normal.z
-            }
-            setPreviewCube(this.np)
-        }
-    }
+const makeBox = function (p) {
+    const box = new THREE.Mesh(
+        new THREE.BoxGeometry(1, 1, 1),
+        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
+    )
+    box.position.set(p.x, p.y, p.z)
+    group1.add(box)
 }
 
+makeBox({x: 0, y: 0, z: 0})
 
-
-const group2 = new THREE.Group()
-group2.scale.setScalar(0.4)
-scene.add(group2)
-
-const previewCube = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshBasicMaterial({
-        color: 'hsl(0, 100%, 50%)', 
-        transparent: true,
-        opacity: 0.2
-    })
-)
-
-group2.add(previewCube)
-
-const setPreviewCube = function (p) {
-    previewCube.position.set(p.x, p.y, p.z)
-}
-
-
-
-const steps = []
-
-const addStep = function (p) {
-    const box = new Step(p)
-    steps.push(box)
-}
-
-const getSides = function () {
-    steps.forEach(step => {
-        step.getSide()
-    });
-}
-
-let allowAdd = true
-
-
-addStep({x: 0, y: 0, z: 0})
 
 const raycaster = new THREE.Raycaster()
 
-let currentStep = 0
+let intersects
 
-setInterval(function () {
-    currentStep += 1
 
-    if (currentStep > steps.length - 1) {
-        currentStep = 0
+const checkIntersection = function () {
+    raycaster.setFromCamera(cursor, camera)
+	intersects = raycaster.intersectObjects(group1.children)
+}
+
+const getIntersection = function (callback) {
+    if (intersects.length == 0) {return}
+
+    group1.children.forEach(target => {
+        if (intersects[0].object == target) {
+            callback(intersects[0])
+        }
+    });
+}
+
+const addMesh = function (target) {
+    const p = {
+        x: target.object.position.x + target.face.normal.x,
+        y: target.object.position.y + target.face.normal.y,
+        z: target.object.position.z + target.face.normal.z
     }
 
-    const freq = notes.getNote(steps[currentStep].pos)
+    makeBox(p)
+}
+
+const changeColor = function (target) {
+    target.object.parent.children.forEach(box => {
+        box.material.color.setHSL(0, 0, 0.2)
+    });
+    target.object.material.color.setHSL(0, 0, 1)
+}
+
+const deleteMesh = function (target) {
+    target.object.geometry.dispose();
+    target.object.material.dispose();
+    group1.remove(target.object);
+}
+
+
+let scale = Tonal.Scale.get('C2 major')
+let initialNote = 'C2'
+
+
+const createNote = function (pos) {
+    let note = initialNote
+
+    if (pos.x > 0) {
+        note = scale.notes[pos.x]
+    } else if (pos.x < 0) {
+        let s = scale.notes.map(Tonal.Note.transposeBy("-8P"))
+        s = s.reverse()
+        note = s[Math.abs(pos.x + 1)]
+    }
+
+    if (pos.y > 0) {
+        for (let i = 0; i < pos.y; i++) {
+            note = Tonal.Note.transpose(note, "8P")          
+        }
+    } else if (pos.y < 0) {
+        for (let i = 0; i < Math.abs(pos.y); i++) {
+            note = Tonal.Note.transpose(note, "-8P")          
+        }
+    }
+
+    const freq = Tonal.Note.freq(note)
 
     playNote(freq, 1)
 
     setTimeout(function () {
         playNote(freq, 0)
     }, 100)
-
-    steps.forEach(step => {
-        step.box.material.color.setHSL(0, 0, 0.2)
-    });
-
-    steps[currentStep].box.material.color.setHSL(0, 1, 1)
-}, 200)
-
-
-
-class Notes {
-    constructor (scale) {
-        this.scale = Tonal.Scale.get(scale)
-        this.initialNote = scale.slice(0, 2)
-    }
-
-    getNote (pos) {
-        this.note = this.initialNote
-
-        if (pos.x > 0) {
-            this.note = this.scale.notes[pos.x]
-        } else if (pos.x < 0) {
-            let s = this.scale.notes.map(Tonal.Note.transposeBy("-8P"))
-            s = s.reverse()
-            this.note = s[Math.abs(pos.x + 1)]
-        }
-
-        if (pos.y > 0) {
-            for (let i = 0; i < pos.y; i++) {
-                this.note = Tonal.Note.transpose(this.note, "8P")          
-            }
-        } else if (pos.y < 0) {
-            for (let i = 0; i < Math.abs(pos.y); i++) {
-                this.note = Tonal.Note.transpose(this.note, "-8P")          
-            }
-        }
-
-        this.freq = Tonal.Note.freq(this.note)
-
-        return this.freq
-    }
 }
 
-const notes = new Notes('C2 major')
+
+let currentStep = 0
+
+
+setInterval(function () {
+    currentStep += 1
+
+    if (currentStep > group1.children.length - 1) {
+        currentStep = 0
+    }
+
+    createNote(group1.children[currentStep].position)
+
+}, 200)
 
 
 
@@ -300,42 +272,18 @@ window.addEventListener('mousemove', function (event) {
     cursor.x = (event.clientX / window.innerWidth) * 2 - 1
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
 
-    raycaster.setFromCamera( cursor, camera );
-
-    getSides()
+    checkIntersection()
+    getIntersection(changeColor)
 })
 
 
-let allowDelete = false
-
-window.addEventListener('keydown', function (e) {
-    if (e.keyCode == 68) {
-        allowDelete = true
+window.addEventListener('mousedown', function(e) {
+    if (e.altKey) {
+        getIntersection(deleteMesh)
+    } else {
+        getIntersection(addMesh)
     }
-})
-
-window.addEventListener('keyup', function (e) {
-    if (e.keyCode == 68) {
-        allowDelete = false
-    }
-})
-
-
-window.addEventListener('mousedown', function () {
-    allowAdd = true
-    steps.forEach((step, index) => {
-        if (step.intersects.length > 0 && allowAdd) {
-            if (allowDelete) {
-                steps.splice(index, 1)
-                step.box.geometry.dispose();
-                step.box.material.dispose();
-                group1.remove(step.box);
-            } else {
-                addStep(previewCube.position)
-                allowAdd = false
-            }
-        }
-    });
+    
 })
 
 
