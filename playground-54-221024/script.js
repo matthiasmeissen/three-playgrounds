@@ -83,7 +83,7 @@ group1.scale.setScalar(0.4)
 const makeBox = function (p) {
     const box = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
+        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)', emissive: 'hsl(0, 0%, 0%)'})
     )
     box.position.set(p.x, p.y, p.z)
     group1.add(box)
@@ -124,15 +124,26 @@ const addMesh = function (target) {
 
 const changeColor = function (target) {
     target.object.parent.children.forEach(box => {
-        box.material.color.setHSL(0, 0, 0.2)
+        box.material.color.setHSL(0, 0, 0.1)
     });
-    target.object.material.color.setHSL(0, 0, 1)
+    target.object.material.color.setHSL(0, 0, 0.8)
 }
 
 const deleteMesh = function (target) {
     target.object.geometry.dispose();
     target.object.material.dispose();
     group1.remove(target.object);
+}
+
+const highlightStep = function (target) {
+    target.parent.children.forEach(box => {
+        box.material.emissive.setHSL(0, 0, 0)
+    });
+    target.material.emissive.setHSL(0.7, 0.8, 0.2)
+
+    setTimeout(function () {
+        target.material.emissive.setHSL(0, 0, 0)
+    }, 100)
 }
 
 
@@ -182,6 +193,8 @@ setInterval(function () {
     }
 
     createNote(group1.children[currentStep].position)
+
+    highlightStep(group1.children[currentStep])
 
 }, 200)
 
