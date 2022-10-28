@@ -75,128 +75,70 @@ const scene = new THREE.Scene()
 
 
 const group1 = new THREE.Group()
+group1.scale.setScalar(0.4)
 scene.add(group1)
 
-group1.scale.setScalar(0.4)
-
-
-const makeBox = function (p) {
+const createBox = function (p) {
     const box = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)', emissive: 'hsl(0, 0%, 0%)'})
+        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
     )
     box.position.set(p.x, p.y, p.z)
     group1.add(box)
 }
 
-makeBox({x: 0, y: 0, z: 0})
+createBox({x: 0, y: 0, z: 0})
 
 
-const raycaster = new THREE.Raycaster()
-
-let intersects
 
 
-const checkIntersection = function () {
-    raycaster.setFromCamera(cursor, camera)
-	intersects = raycaster.intersectObjects(group1.children)
-}
+const group2 = new THREE.Group()
+group2.scale.setScalar(0.4)
+scene.add(group2)
 
-const getIntersection = function (callback) {
-    if (intersects.length == 0) {return}
+const previewCube = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 80%)'})
+)
 
-    group1.children.forEach(target => {
-        if (intersects[0].object == target) {
-            callback(intersects[0])
-        }
-    });
-}
+group2.add(previewCube)
 
-const addMesh = function (target) {
+
+
+const setMeshPosition = function (target, direction) {
     const p = {
-        x: target.object.position.x + target.face.normal.x,
-        y: target.object.position.y + target.face.normal.y,
-        z: target.object.position.z + target.face.normal.z
+        x: target.position.x + direction.x,
+        y: target.position.y + direction.y,
+        z: target.position.z + direction.z
     }
 
-    makeBox(p)
+    target.position.set(p.x, p.y, p.z)
 }
 
-const changeColor = function (target) {
-    target.object.parent.children.forEach(box => {
-        box.material.color.setHSL(0, 0, 0.1)
-    });
-    target.object.material.color.setHSL(0, 0, 0.8)
-}
-
-const deleteMesh = function (target) {
-    target.object.geometry.dispose();
-    target.object.material.dispose();
-    group1.remove(target.object);
-}
-
-const highlightStep = function (target) {
-    target.parent.children.forEach(box => {
-        box.material.emissive.setHSL(0, 0, 0)
-    });
-    target.material.emissive.setHSL(0.7, 0.8, 0.2)
-
-    setTimeout(function () {
-        target.material.emissive.setHSL(0, 0, 0)
-    }, 100)
-}
+setMeshPosition(previewCube, {x: 0, y: 1, z: 0})
 
 
-let scale = Tonal.Scale.get('C2 major')
-let initialNote = 'C2'
+const viewDirection = function () {
+    const d = camera.getWorldDirection(new THREE.Vector3())
 
+    let direction = ''
 
-const createNote = function (pos) {
-    let note = initialNote
-
-    if (pos.x > 0) {
-        note = scale.notes[pos.x]
-    } else if (pos.x < 0) {
-        let s = scale.notes.map(Tonal.Note.transposeBy("-8P"))
-        s = s.reverse()
-        note = s[Math.abs(pos.x + 1)]
+    if (d.z < -0.5) {
+        direction = 'Front'
+    } else if (d.z > 0.5) {
+        direction = 'Back'
+    } else if (d.x < -0.5) {
+        direction = 'Right'
+    } else if (d.x > 0.5) {
+        direction = 'Left'
+    } else if (d.y < -0.5) {
+        direction = 'Top'
+    } else if (d.y > 0.5) {
+        direction = 'Bottom'
     }
 
-    if (pos.y > 0) {
-        for (let i = 0; i < pos.y; i++) {
-            note = Tonal.Note.transpose(note, "8P")          
-        }
-    } else if (pos.y < 0) {
-        for (let i = 0; i < Math.abs(pos.y); i++) {
-            note = Tonal.Note.transpose(note, "-8P")          
-        }
-    }
-
-    const freq = Tonal.Note.freq(note)
-
-    playNote(freq, 1)
-
-    setTimeout(function () {
-        playNote(freq, 0)
-    }, 100)
+    return direction
 }
-
-
-let currentStep = 0
-
-
-setInterval(function () {
-    currentStep += 1
-
-    if (currentStep > group1.children.length - 1) {
-        currentStep = 0
-    }
-
-    createNote(group1.children[currentStep].position)
-
-    highlightStep(group1.children[currentStep])
-
-}, 200)
 
 
 
@@ -284,19 +226,54 @@ const cursor = new THREE.Vector2()
 window.addEventListener('mousemove', function (event) {
     cursor.x = (event.clientX / window.innerWidth) * 2 - 1
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
-
-    checkIntersection()
-    getIntersection(changeColor)
 })
 
 
-window.addEventListener('mousedown', function(e) {
-    if (e.altKey) {
-        getIntersection(deleteMesh)
-    } else {
-        getIntersection(addMesh)
+window.addEventListener('keydown', function (n) {
+
+    const v = viewDirection()
+
+    if (n.key == 'ArrowUp') {
+        if (v == 'Front' || v == 'Back' || v == 'Right' || v == 'Left') {
+            setMeshPosition(previewCube, {x: 0, y: 1, z: 0})
+        } else if (v == 'Top') {
+            setMeshPosition(previewCube, {x: 0, y: 0, z: -1})
+        } else if (v == 'Bottom') {
+            setMeshPosition(previewCube, {x: 0, y: 0, z: 1})
+        }
+    } else if (n.key == 'ArrowDown') {
+        if (v == 'Front' || v == 'Back' || v == 'Right' || v == 'Left') {
+            setMeshPosition(previewCube, {x: 0, y: -1, z: 0})
+        } else if (v == 'Top') {
+            setMeshPosition(previewCube, {x: 0, y: 0, z: 1})
+        } else if (v == 'Bottom') {
+            setMeshPosition(previewCube, {x: 0, y: 0, z: -1})
+        }
+    } else if (n.key == 'ArrowRight') {
+        if (v == 'Front' || v == 'Top') {
+            setMeshPosition(previewCube, {x: 1, y: 0, z: 0})
+        } else if (v == 'Back') {
+            setMeshPosition(previewCube, {x: -1, y: 0, z: 0})
+        } else if (v == 'Left' || v == 'Bottom') {
+            setMeshPosition(previewCube, {x: 0, y: 0, z: 1})
+        } else if (v == 'Right') {
+            setMeshPosition(previewCube, {x: 0, y: 0, z: -1})
+        }
+    } else if (n.key == 'ArrowLeft') {
+        if (v == 'Front' || v == 'Top') {
+            setMeshPosition(previewCube, {x: -1, y: 0, z: 0})
+        } else if (v == 'Back') {
+            setMeshPosition(previewCube, {x: 1, y: 0, z: 0})
+        } else if (v == 'Left' || v == 'Bottom') {
+            setMeshPosition(previewCube, {x: 0, y: 0, z: -1})
+        } else if (v == 'Right') {
+            setMeshPosition(previewCube, {x: 0, y: 0, z: 1})
+        }
     }
-    
+
+    if (n.code == 'Space') {
+        createBox(previewCube.position)
+    }
 })
 
 
