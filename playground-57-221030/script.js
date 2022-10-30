@@ -14,102 +14,34 @@ const scene = new THREE.Scene()
 */
 
 
-const layers = []
+let l = 10
+
+let h = Math.random() * 360
 
 
-const createLayer = function () {
-    const group = new THREE.Group()
-    group.scale.setScalar(0.4)
-    scene.add(group)
-
-    layers.push(group)
-}
-
-createLayer()
-
-let currentLayer = 0
-
-
-const setActiveLayer = function (n) {
-    layers.forEach(layer => {
-        layer.visible = false
-    })
-
-    layers[n].visible = true
-}
-
-let allowPlay = false
-
-
-setInterval(function () {
-    if (allowPlay) {
-        currentLayer += 1
-
-        if (currentLayer > layers.length - 1) {
-            currentLayer = 0
-        }
-
-        setActiveLayer(currentLayer)
-    }
-}, 200)
-
-
-
-const createBox = function (p, layer) {
-    const box = new THREE.Mesh(
+const createCube = function (p, group) {
+    const cube = new THREE.Mesh(
         new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
+        new THREE.MeshStandardMaterial({color: 'hsl(' + h + ', 80%, ' + l +'%)'})
     )
-    box.position.set(p.x, p.y, p.z)
-    layers[layer].add(box)
+    cube.position.set(p.x, p.y, p.z)
+    group.add(cube)
 }
 
 
-const makePreviewCube = function () {
-    const group = new THREE.Group()
-    group.scale.setScalar(0.4)
-    scene.add(group)
-
-    const previewCube = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshStandardMaterial({
-            color: 'hsl(0, 0%, 80%)',
-            transparent: true,
-            opacity: 0.4
-        })
-    )
-
-    group.add(previewCube)
-
-    return previewCube
-}
-
-const previewCube = makePreviewCube()
+const group1 = new THREE.Group()
+group1.scale.setScalar(0.4)
+scene.add(group1)
 
 
-const setMeshPosition = function (target, direction) {
-    const p = {
-        x: target.position.x + direction.x,
-        y: target.position.y + direction.y,
-        z: target.position.z + direction.z
+createCube({x: 0, y: 0, z: 0}, group1)
+
+const changeLightness = function () {
+    l += 1
+
+    if (l > 90) {
+        l = 10
     }
-
-    target.position.set(p.x, p.y, p.z)
-}
-
-setMeshPosition(previewCube, {x: 0, y: 1, z: 0})
-
-
-const checkForCubes = function (n) {
-    const p = previewCube.position
-    layers[n].children.forEach(target => {
-        const t = target.position
-        if (t.x == p.x && t.y == p.y && t.z == p.z) {
-            target.geometry.dispose()
-            target.material.dispose()
-            layers[n].remove(target)
-        }
-    });
 }
 
 
@@ -202,56 +134,31 @@ window.addEventListener('mousemove', function (event) {
 
 window.addEventListener('keydown', function (n) {
 
+    changeLightness()
+
+    const p = group1.children[group1.children.length - 1].position
+
+    if (n.key == 'ArrowRight') {
+        createCube({x: p.x + 1, y: p.y, z: p.z}, group1); return
+    }
+    if (n.key == 'ArrowLeft') {
+        createCube({x: p.x - 1, y: p.y, z: p.z}, group1); return
+    }
     if (n.key == 'ArrowUp') {
         if (n.altKey == true) {
-            createLayer()
-            currentLayer = layers.length - 1
-            setActiveLayer(currentLayer)
-            return
+            createCube({x: p.x, y: p.y, z: p.z - 1}, group1); return
         }
-
-        setMeshPosition(previewCube, {x: 0, y: 1, z: 0})
-
-    } else if (n.key == 'ArrowDown') {
-        setMeshPosition(previewCube, {x: 0, y: -1, z: 0})
-
-    } else if (n.key == 'ArrowRight') {
+        createCube({x: p.x, y: p.y + 1, z: p.z}, group1); return
+    }
+    if (n.key == 'ArrowDown') {
         if (n.altKey == true) {
-            currentLayer += 1
-            if (currentLayer > layers.length - 1) {
-                currentLayer = 0
-            }
-            setActiveLayer(currentLayer)
-            return
+            createCube({x: p.x, y: p.y, z: p.z + 1}, group1); return
         }
-
-        setMeshPosition(previewCube, {x: 1, y: 0, z: 0})
-
-    } else if (n.key == 'ArrowLeft') {
-        if (n.altKey == true) {
-            currentLayer -= 1
-            if (currentLayer < 0) {
-                currentLayer = layers.length - 1
-            }
-            setActiveLayer(currentLayer)
-            return
-        }
-
-        setMeshPosition(previewCube, {x: -1, y: 0, z: 0})
+        createCube({x: p.x, y: p.y - 1, z: p.z}, group1); return
     }
 
-    if (n.key == 'p') {
-        allowPlay = !allowPlay
-
-        previewCube.visible = !allowPlay
-    }
-
-    if (n.key == 'd') {
-        checkForCubes(currentLayer)
-    }
-
-    if (n.code == 'Space') {
-        createBox(previewCube.position, currentLayer)
+    if (n.key == 'c') {
+        h = Math.random() * 360
     }
 })
 
