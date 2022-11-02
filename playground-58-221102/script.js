@@ -14,34 +14,72 @@ const scene = new THREE.Scene()
 */
 
 
-let l = 10
 
-let h = Math.random() * 360
+const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(2, 2),
+    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 80%)', side: THREE.DoubleSide})
+)
 
+plane.position.z = -0.2
 
-const createCube = function (p, group) {
-    const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(1, 1, 1),
-        new THREE.MeshStandardMaterial({color: 'hsl(' + h + ', 80%, ' + l +'%)'})
-    )
-    cube.position.set(p.x, p.y, p.z)
-    group.add(cube)
-}
+plane.receiveShadow = true
 
+scene.add(plane)
 
-const group1 = new THREE.Group()
-group1.scale.setScalar(0.4)
+const group1 = new THREE.Group
 scene.add(group1)
 
+const createCube = function (p) {
+    const cube = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 0.2, 0.2),
+        new THREE.MeshStandardMaterial()
+    )
+    
+    cube.position.set(p.x, p.y, p.z)
 
-createCube({x: 0, y: 0, z: 0}, group1)
+    cube.castShadow = true
+    cube.receiveShadow = true
 
-const changeLightness = function () {
-    l += 1
+    group1.add(cube)
+}
 
-    if (l > 90) {
-        l = 10
+createCube({x: 0, y: 0, z: 0})
+
+
+const previewCube = new THREE.Mesh(
+    new THREE.BoxGeometry(0.2, 0.2, 0.2),
+    new THREE.MeshStandardMaterial({color: 'hsl(200, 80%, 40%)', transparent: true, opacity: 0.2})
+)
+
+scene.add(previewCube)
+
+
+
+const raycaster = new THREE.Raycaster()
+
+
+let allowAdd = false
+
+
+const checkIntersection = function () {
+    raycaster.setFromCamera(cursor, camera);
+	const intersects = raycaster.intersectObject(plane);
+
+    if (intersects.length > 0) {
+        const p = intersects[0].point
+        previewCube.visible = true
+
+        const px = Math.floor(p.x * 5) / 5
+        const py = Math.floor(p.y * 5) / 5
+
+        previewCube.position.set(px, py, 0)
+
+        allowAdd = true
+        return
     }
+
+    allowAdd = false
+    previewCube.visible = false
 }
 
 
@@ -60,7 +98,19 @@ scene.add(ambientLight)
 
 const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
 light1.position.set(2, 2, 4)
+light1.castShadow = true
 lights.add(light1)
+
+light1.shadow.mapSize.width = 1024
+light1.shadow.mapSize.height = 1024
+light1.shadow.camera.near = 4
+light1.shadow.camera.far = 6
+
+light1.shadow.camera.top = 1.0
+light1.shadow.camera.right = 1.0
+light1.shadow.camera.bottom = -1.0
+light1.shadow.camera.left = -1.0
+
 
 const light2 = new THREE.DirectionalLight(0xffffff, 0.8)
 light2.position.set(-2, 2, -4)
@@ -87,6 +137,7 @@ scene.add(camera)
 const renderer = new THREE.WebGLRenderer({ canvas })
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
 renderer.setSize(window.innerWidth, window.innerHeight)
+renderer.shadowMap.enabled = true
 
 // Functions
 window.addEventListener('resize', onWindowResize);
@@ -129,36 +180,15 @@ const cursor = new THREE.Vector2()
 window.addEventListener('mousemove', function (event) {
     cursor.x = (event.clientX / window.innerWidth) * 2 - 1
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
+
+    checkIntersection()
 })
 
 
-window.addEventListener('keydown', function (n) {
-
-    changeLightness()
-
-    const p = group1.children[group1.children.length - 1].position
-
-    if (n.key == 'ArrowRight') {
-        createCube({x: p.x + 1, y: p.y, z: p.z}, group1); return
-    }
-    if (n.key == 'ArrowLeft') {
-        createCube({x: p.x - 1, y: p.y, z: p.z}, group1); return
-    }
-    if (n.key == 'ArrowUp') {
-        if (n.altKey == true) {
-            createCube({x: p.x, y: p.y, z: p.z - 1}, group1); return
-        }
-        createCube({x: p.x, y: p.y + 1, z: p.z}, group1); return
-    }
-    if (n.key == 'ArrowDown') {
-        if (n.altKey == true) {
-            createCube({x: p.x, y: p.y, z: p.z + 1}, group1); return
-        }
-        createCube({x: p.x, y: p.y - 1, z: p.z}, group1); return
-    }
-
-    if (n.key == 'c') {
-        h = Math.random() * 360
+window.addEventListener('mousedown', function () {
+    if (allowAdd) {
+        const p = previewCube.position
+        createCube(p)
     }
 })
 
@@ -174,7 +204,6 @@ let absTime
 
 function animate() {
     absTime = clock.getElapsedTime()
-
 
 
     renderer.render(scene, camera)
