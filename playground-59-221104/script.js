@@ -29,10 +29,13 @@ scene.add(plane)
 const group1 = new THREE.Group
 scene.add(group1)
 
-const createCube = function (p) {
+
+let currentColor = new THREE.Color()
+
+const createCube = function (p, color) {
     const cube = new THREE.Mesh(
         new THREE.BoxGeometry(0.2, 0.2, 0.2),
-        new THREE.MeshStandardMaterial()
+        new THREE.MeshStandardMaterial({color: color})
     )
     
     cube.position.set(p.x, p.y, p.z)
@@ -43,7 +46,7 @@ const createCube = function (p) {
     group1.add(cube)
 }
 
-createCube({x: 0, y: 0, z: 0})
+createCube({x: 0, y: 0, z: 0}, currentColor)
 
 
 const previewCube = new THREE.Mesh(
@@ -72,7 +75,7 @@ const checkIntersection = function () {
         const px = Math.floor(p.x * 5) / 5
         const py = Math.floor(p.y * 5) / 5
 
-        previewCube.position.set(px, py, 0)
+        previewCube.position.set(px, py, positionZ)
 
         allowAdd = true
         return
@@ -81,6 +84,42 @@ const checkIntersection = function () {
     allowAdd = false
     previewCube.visible = false
 }
+
+
+let positionZ = 0
+
+
+const checkColor = function () {
+    raycaster.setFromCamera(cursor, camera);
+	const intersects = raycaster.intersectObjects(colorGroup.children);
+
+    if (intersects.length > 0) {
+        currentColor = intersects[0].object.material.color
+
+        previewCube.material.color = currentColor
+    }
+}
+
+
+const colorGroup = new THREE.Group()
+scene.add(colorGroup)
+
+
+const colorPicker = function (steps, size) {
+    for (let i = 0; i < steps; i++) {
+        const colorCube = new THREE.Mesh(
+            new THREE.BoxGeometry(size, size, size * 0.2),
+            new THREE.MeshStandardMaterial({color: 'hsl(200, 80%, 40%)'})
+        )
+
+        colorCube.position.set(i * (size + 0.02) - steps * size * 0.5, -1.25, 0)
+        colorCube.material.color.setHSL(i / steps, 0.6, 0.5)
+
+        colorGroup.add(colorCube)
+    }
+}
+
+colorPicker(8, 0.2)
 
 
 
@@ -182,13 +221,23 @@ window.addEventListener('mousemove', function (event) {
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
 
     checkIntersection()
+    checkColor()
 })
 
 
 window.addEventListener('mousedown', function () {
     if (allowAdd) {
         const p = previewCube.position
-        createCube(p)
+        createCube(p, currentColor)
+    }
+})
+
+
+window.addEventListener('keydown', function (n) {
+    if (n.key == 'ArrowUp') {
+        positionZ += 0.2
+    } else if (n.key == 'ArrowDown') {
+        positionZ -= 0.2
     }
 })
 
