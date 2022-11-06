@@ -14,112 +14,59 @@ const scene = new THREE.Scene()
 */
 
 
-
 const plane = new THREE.Mesh(
     new THREE.PlaneGeometry(2, 2),
-    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 80%)', side: THREE.DoubleSide})
+    new THREE.MeshBasicMaterial({color: 'hsl(0, 0%, 20%)', side: THREE.DoubleSide})
 )
-
-plane.position.z = -0.2
-
-plane.receiveShadow = true
 
 scene.add(plane)
 
-const group1 = new THREE.Group
-scene.add(group1)
+
+const points = []
+
+points.push(new THREE.Vector3(-0.2, 0, 0))
+points.push(new THREE.Vector3(0.2, 0.0, 0))
 
 
-let currentColor = new THREE.Color()
-
-const createCube = function (p, color) {
-    const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2, 0.2, 0.2),
-        new THREE.MeshStandardMaterial({color: color})
-    )
-    
-    cube.position.set(p.x, p.y, p.z)
-
-    cube.castShadow = true
-    cube.receiveShadow = true
-
-    group1.add(cube)
-}
-
-createCube({x: 0, y: 0, z: 0}, currentColor)
-
-
-const previewCube = new THREE.Mesh(
-    new THREE.BoxGeometry(0.2, 0.2, 0.2),
-    new THREE.MeshStandardMaterial({color: 'hsl(200, 80%, 40%)', transparent: true, opacity: 0.2})
+const line = new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(points),
+    new THREE.LineBasicMaterial()
 )
 
-scene.add(previewCube)
-
+scene.add(line)
 
 
 const raycaster = new THREE.Raycaster()
 
 
-let allowAdd = false
+
+let position = 0
 
 
-const checkIntersection = function () {
-    raycaster.setFromCamera(cursor, camera);
-	const intersects = raycaster.intersectObject(plane);
+const checkPosition = function () {
+    raycaster.setFromCamera(cursor, camera)
+	const intersects = raycaster.intersectObject(plane)
 
     if (intersects.length > 0) {
         const p = intersects[0].point
-        previewCube.visible = true
 
-        const px = Math.floor(p.x * 5) / 5
-        const py = Math.floor(p.y * 5) / 5
+        points.push(p)
 
-        previewCube.position.set(px, py, positionZ)
-
-        allowAdd = true
-        return
-    }
-
-    allowAdd = false
-    previewCube.visible = false
-}
-
-
-let positionZ = 0
-
-
-const checkColor = function () {
-    raycaster.setFromCamera(cursor, camera);
-	const intersects = raycaster.intersectObjects(colorGroup.children);
-
-    if (intersects.length > 0) {
-        currentColor = intersects[0].object.material.color
-
-        previewCube.material.color = currentColor
-    }
-}
-
-
-const colorGroup = new THREE.Group()
-scene.add(colorGroup)
-
-
-const colorPicker = function (steps, size) {
-    for (let i = 0; i < steps; i++) {
-        const colorCube = new THREE.Mesh(
-            new THREE.BoxGeometry(size, size, size * 0.2),
-            new THREE.MeshStandardMaterial({color: 'hsl(200, 80%, 40%)'})
+        const line = new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints(points),
+            new THREE.LineBasicMaterial()
         )
 
-        colorCube.position.set(i * (size + 0.02) - steps * size * 0.5, -1.25, 0)
-        colorCube.material.color.setHSL(i / steps, 0.6, 0.5)
+        line.material.color.setHSL(position, 1, 0.5)
 
-        colorGroup.add(colorCube)
+        position += 0.01
+
+        line.position.x += position * 0.2
+        line.position.z += position
+
+        scene.add(line)
     }
 }
-
-colorPicker(8, 0.2)
 
 
 
@@ -137,22 +84,9 @@ scene.add(ambientLight)
 
 const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
 light1.position.set(2, 2, 4)
-light1.castShadow = true
-lights.add(light1)
-
-light1.shadow.mapSize.width = 1024
-light1.shadow.mapSize.height = 1024
-light1.shadow.camera.near = 4
-light1.shadow.camera.far = 6
-
-light1.shadow.camera.top = 1.0
-light1.shadow.camera.right = 1.0
-light1.shadow.camera.bottom = -1.0
-light1.shadow.camera.left = -1.0
-
 
 const light2 = new THREE.DirectionalLight(0xffffff, 0.8)
-light2.position.set(-2, 2, -4)
+light2.position.set(-2, 2, 4)
 lights.add(light2)
 
 
@@ -219,28 +153,11 @@ const cursor = new THREE.Vector2()
 window.addEventListener('mousemove', function (event) {
     cursor.x = (event.clientX / window.innerWidth) * 2 - 1
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
-
-    checkIntersection()
-    checkColor()
 })
-
 
 window.addEventListener('mousedown', function () {
-    if (allowAdd) {
-        const p = previewCube.position
-        createCube(p, currentColor)
-    }
+    checkPosition()
 })
-
-
-window.addEventListener('keydown', function (n) {
-    if (n.key == 'ArrowUp') {
-        positionZ += 0.2
-    } else if (n.key == 'ArrowDown') {
-        positionZ -= 0.2
-    }
-})
-
 
 
 // Clock
