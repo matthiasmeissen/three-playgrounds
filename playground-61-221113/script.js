@@ -14,59 +14,63 @@ const scene = new THREE.Scene()
 */
 
 
-const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(2, 2),
-    new THREE.MeshBasicMaterial({color: 'hsl(0, 0%, 20%)', side: THREE.DoubleSide})
-)
-
-scene.add(plane)
+const group1 = new THREE.Group()
+group1.scale.setScalar(0.4)
+scene.add(group1)
 
 
-const points = []
-
-points.push(new THREE.Vector3(-0.2, 0, 0))
-points.push(new THREE.Vector3(0.2, 0.0, 0))
+const geometry = new THREE.BoxGeometry(1, 1, 1)
 
 
-const line = new THREE.Line(
-    new THREE.BufferGeometry().setFromPoints(points),
-    new THREE.LineBasicMaterial()
-)
-
-scene.add(line)
-
-
-const raycaster = new THREE.Raycaster()
-
-
-
-let position = 0
-
-
-const checkPosition = function () {
-    raycaster.setFromCamera(cursor, camera)
-	const intersects = raycaster.intersectObject(plane)
-
-    if (intersects.length > 0) {
-        const p = intersects[0].point
-
-        points.push(p)
-
-        const line = new THREE.Line(
-            new THREE.BufferGeometry().setFromPoints(points),
-            new THREE.LineBasicMaterial()
-        )
-
-        line.material.color.setHSL(position, 1, 0.5)
-
-        position += 0.01
-
-        line.position.x += position * 0.2
-        line.position.z += position
-
-        scene.add(line)
-    }
+const createCube = function (p = {x: 0, y: 0, z: 0}) {
+    const box = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 80%)'}))
+    box.position.set(p.x, p.y, p.z)
+    group1.add(box)
 }
+
+createCube()
+
+
+const getRandomPosition = function (p) {
+    const direction = Math.random() < 0.5 ? -1.0 : 1.0
+    const num = Math.floor(Math.random() * 3)
+
+    let newPos
+
+    if (num == 0) {
+        newPos = {x: p.x + direction, y: p.y, z: p.z}
+    } else if (num == 1) {
+        newPos = {x: p.x, y: p.y + direction, z: p.z}
+    } else {
+        newPos = {x: p.x, y: p.y, z: p.z + direction}
+    }
+
+    return newPos
+}
+
+
+const createRandomCube = function () {
+    const latestCube = group1.children[group1.children.length - 1]
+    let newPos = getRandomPosition(latestCube.position)
+    createCube(newPos)
+}
+
+let count = 0
+const amount = 400
+
+let color = Math.random()
+
+
+setInterval(function () {
+    if (count < amount) {
+        createRandomCube()
+        if (count == amount * 0.5) {
+            color = Math.random()
+        }
+        group1.children[count].material.color.setHSL(color, count / amount, count / (amount * 2.0))
+        count += 1
+    }
+}, 100)
 
 
 
@@ -86,7 +90,7 @@ const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
 light1.position.set(2, 2, 4)
 
 const light2 = new THREE.DirectionalLight(0xffffff, 0.8)
-light2.position.set(-2, 2, 4)
+light2.position.set(-2, 1, 4)
 lights.add(light2)
 
 
@@ -155,9 +159,6 @@ window.addEventListener('mousemove', function (event) {
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
 })
 
-window.addEventListener('mousedown', function () {
-    checkPosition()
-})
 
 
 // Clock
