@@ -14,63 +14,83 @@ const scene = new THREE.Scene()
 */
 
 
-const group1 = new THREE.Group()
-group1.scale.setScalar(0.4)
-scene.add(group1)
 
+class MeshGroup {
+    constructor (num) {
+        this.num = num
 
-const geometry = new THREE.BoxGeometry(1, 1, 1)
-
-
-const createCube = function (p = {x: 0, y: 0, z: 0}) {
-    const box = new THREE.Mesh(geometry, new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 80%)'}))
-    box.position.set(p.x, p.y, p.z)
-    group1.add(box)
-}
-
-createCube()
-
-
-const getRandomPosition = function (p) {
-    const direction = Math.random() < 0.5 ? -1.0 : 1.0
-    const num = Math.floor(Math.random() * 3)
-
-    let newPos
-
-    if (num == 0) {
-        newPos = {x: p.x + direction, y: p.y, z: p.z}
-    } else if (num == 1) {
-        newPos = {x: p.x, y: p.y + direction, z: p.z}
-    } else {
-        newPos = {x: p.x, y: p.y, z: p.z + direction}
+        this.createGroup()
+        this.createMeshes()
+        this.setMeshPosition()
     }
 
-    return newPos
-}
+    createGroup () {
+        this.group = new THREE.Group()
+        this.group.scale.setScalar(0.4)
+        scene.add(this.group)
+    }
 
+    setPosition (p) {
+        this.group.position.set(p.x, p.y, p.z)
+    }
 
-const createRandomCube = function () {
-    const latestCube = group1.children[group1.children.length - 1]
-    let newPos = getRandomPosition(latestCube.position)
-    createCube(newPos)
-}
+    createCube () {
+        const cube = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 1, 1),
+            new THREE.MeshStandardMaterial()
+        )
+        return cube
+    }
 
-let count = 0
-const amount = 400
-
-let color = Math.random()
-
-
-setInterval(function () {
-    if (count < amount) {
-        createRandomCube()
-        if (count == amount * 0.5) {
-            color = Math.random()
+    createMeshes () {
+        for (let i = 0; i < this.num; i++) {
+            this.group.add(this.createCube())      
         }
-        group1.children[count].material.color.setHSL(color, count / amount, count / (amount * 2.0))
-        count += 1
     }
-}, 100)
+
+    getRandomVector () {
+        const randomDirection = Math.random() < 0.5 ? -1.0 : 1.0
+        const randomSide = Math.floor(Math.random() * 3)
+
+        let direction
+
+        if (randomSide == 0) {
+            direction = {x: randomDirection, y: 0, z: 0}
+        } else if (randomSide == 1) {
+            direction = {x: 0, y: randomDirection, z: 0}
+        } else {
+            direction = {x: 0, y: 0, z: randomDirection}
+        }
+
+        return direction
+    }
+
+    setMeshPosition () {
+        this.group.children.forEach((mesh, index) => {
+            if (index == 0) {
+                const p = this.group.position
+                mesh.position.set(p.x, p.y, p.z)
+            } else {
+                const prevPos = this.group.children[index - 1].position
+                const randomVector = this.getRandomVector()
+                const newPos = {
+                    x: prevPos.x + randomVector.x,
+                    y: prevPos.y + randomVector.y,
+                    z: prevPos.z + randomVector.z
+                }
+
+                mesh.position.set(newPos.x, newPos.y, newPos.z)
+            }
+        });
+    }
+}
+
+const group1 = new MeshGroup(20)
+group1.setPosition({x: -1, y: 0, z:0})
+
+const group2 = new MeshGroup(20)
+group2.setPosition({x: 1, y: 0, z: 0})
+
 
 
 
