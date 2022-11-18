@@ -48,6 +48,42 @@ class MeshGroup {
         }
     }
 
+    createStructureInX () {
+        this.group.children.forEach((mesh, index) => {
+            mesh.position.set(index + index * 0.02, 0, 0)
+        });
+    }
+
+    createStructureInZ () {
+        let lastMove = 'moveX'
+        let lastPos
+
+        this.group.children.forEach((mesh, index) => {
+            if (index == 0) {
+                mesh.position.set(0, 0, 0)
+                lastPos = mesh.position
+                return
+            } else {
+                const pz = Math.random() < 0.5 ? -1 : 1
+                if (lastMove == 'moveX') {
+                    if (Math.random() < 0.5) {
+                        mesh.position.set(lastPos.x + 1, 0, lastPos.z)
+                        lastMove = 'moveX'
+                    } else {
+                        mesh.position.set(lastPos.x, 0, lastPos.z + pz)
+                        lastMove = 'moveY'
+                    }
+                    lastPos = mesh.position
+                } else {
+                    mesh.position.set(lastPos.x + 1, 0, lastPos.z)
+                    lastPos = mesh.position
+                    lastMove = 'moveX'
+                }
+            }
+        })
+    }
+
+
     getRandomVector () {
         const randomDirection = Math.random() < 0.5 ? -1.0 : 1.0
         const randomSide = Math.floor(Math.random() * 3)
@@ -86,12 +122,10 @@ class MeshGroup {
 }
 
 const group1 = new MeshGroup(20)
-group1.setPosition({x: -1, y: 0, z:0})
-
-const group2 = new MeshGroup(20)
-group2.setPosition({x: 1, y: 0, z: 0})
+group1.createStructureInZ()
 
 
+group1.group.position.y = -2
 
 
 /*
@@ -191,6 +225,10 @@ let absTime
 
 function animate() {
     absTime = clock.getElapsedTime()
+
+
+    group1.group.rotation.y = absTime
+    group1.group.rotation.z = Math.PI * 0.5
 
 
     renderer.render(scene, camera)
