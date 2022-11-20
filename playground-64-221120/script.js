@@ -21,12 +21,13 @@ class MeshGroup {
 
         this.createGroup()
         this.createMeshes()
-        this.setMeshPosition()
+        this.color
     }
 
     createGroup () {
         this.group = new THREE.Group()
-        this.group.scale.setScalar(0.4)
+        this.group.scale.setScalar(0.2)
+        this.group.rotation.y = Math.PI * -0.5
         scene.add(this.group)
     }
 
@@ -48,84 +49,70 @@ class MeshGroup {
         }
     }
 
-    createStructureInX () {
-        this.group.children.forEach((mesh, index) => {
-            mesh.position.set(index + index * 0.02, 0, 0)
-        });
-    }
+    createStructure () {
+        let prevStepInX
 
-    createStructureInZ () {
-        let lastMove = 'moveX'
-        let lastPos
-
-        this.group.children.forEach((mesh, index) => {
-            if (index == 0) {
-                mesh.position.set(0, 0, 0)
-                lastPos = mesh.position
-                return
-            } else {
-                const pz = Math.random() < 0.5 ? -1 : 1
-                if (lastMove == 'moveX') {
-                    if (Math.random() < 0.5) {
-                        mesh.position.set(lastPos.x + 1, 0, lastPos.z)
-                        lastMove = 'moveX'
-                    } else {
-                        mesh.position.set(lastPos.x, 0, lastPos.z + pz)
-                        lastMove = 'moveY'
-                    }
-                    lastPos = mesh.position
+        this.group.children.forEach(mesh => {
+            if (prevStepInX) {
+                if (Math.random() < 0.5) {
+                    this.moveInDirection({x: 1, y: 0, z: 0}, mesh, this.getPrevMesh(mesh))
                 } else {
-                    mesh.position.set(lastPos.x + 1, 0, lastPos.z)
-                    lastPos = mesh.position
-                    lastMove = 'moveX'
+                    if (Math.random() < 0.5) {
+                        this.moveInDirection({x: 0, y: 0, z: 1}, mesh, this.getPrevMesh(mesh))
+                    } else {
+                        this.moveInDirection({x: 0, y: 1, z: 0}, mesh, this.getPrevMesh(mesh))
+                    }
+                    prevStepInX = false
                 }
+            } else {
+                this.moveInDirection({x: 1, y: 0, z: 0}, mesh, this.getPrevMesh(mesh))
+                prevStepInX = true
             }
         })
     }
 
+    moveInDirection (direction, targetMesh, lastMesh) {
+        const r = Math.random() < 0.5 ? -1 : 1
 
-    getRandomVector () {
-        const randomDirection = Math.random() < 0.5 ? -1.0 : 1.0
-        const randomSide = Math.floor(Math.random() * 3)
-
-        let direction
-
-        if (randomSide == 0) {
-            direction = {x: randomDirection, y: 0, z: 0}
-        } else if (randomSide == 1) {
-            direction = {x: 0, y: randomDirection, z: 0}
-        } else {
-            direction = {x: 0, y: 0, z: randomDirection}
+        const pos = {
+            x: lastMesh.position.x + direction.x,
+            y: lastMesh.position.y + direction.y * r,
+            z: lastMesh.position.z + direction.z * r
         }
 
-        return direction
+        targetMesh.position.set(pos.x, pos.y, pos.z)
     }
 
-    setMeshPosition () {
-        this.group.children.forEach((mesh, index) => {
-            if (index == 0) {
-                const p = this.group.position
-                mesh.position.set(p.x, p.y, p.z)
-            } else {
-                const prevPos = this.group.children[index - 1].position
-                const randomVector = this.getRandomVector()
-                const newPos = {
-                    x: prevPos.x + randomVector.x,
-                    y: prevPos.y + randomVector.y,
-                    z: prevPos.z + randomVector.z
-                }
+    getPrevMesh (currentMesh) {
+        const meshIndex = currentMesh.parent.children.indexOf(currentMesh)
+        const prevMeshIndex = (meshIndex - 1) < 0 ? 0 : meshIndex - 1
+        return currentMesh.parent.children[prevMeshIndex]
+    }
 
-                mesh.position.set(newPos.x, newPos.y, newPos.z)
-            }
+    cycleThroughMeshes () {
+        this.group.children.push(this.group.children.shift())
+
+        this.group.children.forEach((mesh, index) => {
+            mesh.material.color.setHSL(this.color, 0.6, (1 / this.group.children.length) * index)
         });
     }
 }
 
+
 const group1 = new MeshGroup(20)
-group1.createStructureInZ()
+group1.createStructure()
+group1.color = Math.random()
+
+const group2 = new MeshGroup(20)
+group2.createStructure()
+group2.color = Math.random()
 
 
-group1.group.position.y = -2
+setInterval(function () {
+    group1.cycleThroughMeshes()
+    group2.cycleThroughMeshes()
+}, 80)
+
 
 
 /*
@@ -225,10 +212,6 @@ let absTime
 
 function animate() {
     absTime = clock.getElapsedTime()
-
-
-    group1.group.rotation.y = absTime
-    group1.group.rotation.z = Math.PI * 0.5
 
 
     renderer.render(scene, camera)
