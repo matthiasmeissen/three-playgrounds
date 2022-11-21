@@ -14,104 +14,37 @@ const scene = new THREE.Scene()
 */
 
 
+const group1 = new THREE.Group()
+group1.position.y = -0.4
+scene.add(group1)
 
-class MeshGroup {
-    constructor (num) {
-        this.num = num
 
-        this.createGroup()
-        this.createMeshes()
-        this.color
-    }
+const floor = new THREE.Mesh(
+    new THREE.PlaneGeometry(4, 4),
+    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
+)
+floor.rotation.x = Math.PI * -0.5
+floor.receiveShadow = true
+group1.add(floor)
 
-    createGroup () {
-        this.group = new THREE.Group()
-        this.group.scale.setScalar(0.2)
-        this.group.rotation.y = Math.PI * -0.5
-        scene.add(this.group)
-    }
 
-    setPosition (p) {
-        this.group.position.set(p.x, p.y, p.z)
-    }
+for (let i = 0; i < 20; i++) {
+    const t = Math.random() * 2
+    const box = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, t, 0.1),
+        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
+    )
+    const r = Math.random()
+    const s = Math.random() + 0.8
+    box.position.set(Math.sin(r * Math.PI * 2.0) * s, t * 0.5,  Math.cos(r * Math.PI * 2.0) * s)
+    box.rotation.y = Math.random()
 
-    createCube () {
-        const cube = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 1, 1),
-            new THREE.MeshStandardMaterial()
-        )
-        return cube
-    }
+    box.castShadow = true
+    box.receiveShadow = true
 
-    createMeshes () {
-        for (let i = 0; i < this.num; i++) {
-            this.group.add(this.createCube())      
-        }
-    }
-
-    createStructure () {
-        let prevStepInX
-
-        this.group.children.forEach(mesh => {
-            if (prevStepInX) {
-                if (Math.random() < 0.5) {
-                    this.moveInDirection({x: 1, y: 0, z: 0}, mesh, this.getPrevMesh(mesh))
-                } else {
-                    if (Math.random() < 0.5) {
-                        this.moveInDirection({x: 0, y: 0, z: 1}, mesh, this.getPrevMesh(mesh))
-                    } else {
-                        this.moveInDirection({x: 0, y: 1, z: 0}, mesh, this.getPrevMesh(mesh))
-                    }
-                    prevStepInX = false
-                }
-            } else {
-                this.moveInDirection({x: 1, y: 0, z: 0}, mesh, this.getPrevMesh(mesh))
-                prevStepInX = true
-            }
-        })
-    }
-
-    moveInDirection (direction, targetMesh, lastMesh) {
-        const r = Math.random() < 0.5 ? -1 : 1
-
-        const pos = {
-            x: lastMesh.position.x + direction.x,
-            y: lastMesh.position.y + direction.y * r,
-            z: lastMesh.position.z + direction.z * r
-        }
-
-        targetMesh.position.set(pos.x, pos.y, pos.z)
-    }
-
-    getPrevMesh (currentMesh) {
-        const meshIndex = currentMesh.parent.children.indexOf(currentMesh)
-        const prevMeshIndex = (meshIndex - 1) < 0 ? 0 : meshIndex - 1
-        return currentMesh.parent.children[prevMeshIndex]
-    }
-
-    cycleThroughMeshes () {
-        this.group.children.push(this.group.children.shift())
-
-        this.group.children.forEach((mesh, index) => {
-            mesh.material.color.setHSL(this.color, 0.6, (1 / this.group.children.length) * index)
-        });
-    }
+    group1.add(box)
 }
 
-
-const group1 = new MeshGroup(20)
-group1.createStructure()
-group1.color = Math.random()
-
-const group2 = new MeshGroup(20)
-group2.createStructure()
-group2.color = Math.random()
-
-
-setInterval(function () {
-    group1.cycleThroughMeshes()
-    group2.cycleThroughMeshes()
-}, 80)
 
 
 
@@ -124,15 +57,32 @@ setInterval(function () {
 const lights = new THREE.Group()
 scene.add(lights)
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.2)
-scene.add(ambientLight)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.1)
+lights.add(ambientLight)
 
-const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
-light1.position.set(2, 2, 4)
+const light1 = new THREE.DirectionalLight(0xffffff, 0.2)
+light1.position.set(-2, 1, 4)
 
-const light2 = new THREE.DirectionalLight(0xffffff, 0.8)
-light2.position.set(-2, 1, 4)
-lights.add(light2)
+light1.castShadow = true
+light1.shadow.camera.near = 2
+light1.shadow.camera.far = 8
+light1.shadow.camera.top = 1
+light1.shadow.camera.bottom = -1
+light1.shadow.camera.left = -2
+light1.shadow.camera.right = 2
+
+lights.add(light1)
+
+const pointLight1 = new THREE.PointLight('hsl(240, 80%, 50%)', 2)
+pointLight1.castShadow = true
+pointLight1.shadow.camera.far = 4
+lights.add(pointLight1)
+
+const pointLight2 = new THREE.PointLight('hsl(40, 20%, 50%)', 0.8)
+pointLight2.castShadow = true
+pointLight2.shadow.camera.far = 4
+lights.add(pointLight2)
+
 
 
 /*
@@ -144,6 +94,8 @@ lights.add(light2)
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight)
 camera.position.set(0, 0, 4)
 scene.add(camera)
+
+scene.fog = new THREE.Fog('hsl(0, 0%, 0%)', 2, 8)
 
 
 /*
@@ -213,6 +165,8 @@ let absTime
 function animate() {
     absTime = clock.getElapsedTime()
 
+    pointLight1.position.set(Math.sin(absTime), 0, Math.cos(absTime))
+    pointLight2.position.set(Math.sin(absTime * 0.2) * 1.4, 0, Math.cos(absTime * 0.2) * 1.4)
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
