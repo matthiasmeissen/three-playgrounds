@@ -13,38 +13,40 @@ const scene = new THREE.Scene()
     Geometry
 */
 
-
 const group1 = new THREE.Group()
-group1.position.y = -0.4
 scene.add(group1)
 
-
-const floor = new THREE.Mesh(
-    new THREE.PlaneGeometry(4, 4),
-    new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
-)
-floor.rotation.x = Math.PI * -0.5
-floor.receiveShadow = true
-group1.add(floor)
-
-
-for (let i = 0; i < 20; i++) {
-    const t = Math.random() * 2
-    const box = new THREE.Mesh(
-        new THREE.BoxGeometry(0.4, t, 0.1),
-        new THREE.MeshStandardMaterial({color: 'hsl(0, 0%, 20%)'})
+const createPoints = function (s, c) {
+    const points = new THREE.Points(
+        new THREE.SphereGeometry(),
+        new THREE.PointsMaterial({
+            size: 0.02,
+            color: 'hsl(0, 100%, 50%)'
+        })
     )
-    const r = Math.random()
-    const s = Math.random() + 0.8
-    box.position.set(Math.sin(r * Math.PI * 2.0) * s, t * 0.5,  Math.cos(r * Math.PI * 2.0) * s)
-    box.rotation.y = Math.random()
-
-    box.castShadow = true
-    box.receiveShadow = true
-
-    group1.add(box)
+    points.scale.setScalar(s)
+    points.rotation.y = c
+    points.rotation.z = c * 0.2
+    points.material.color.setHSL(c, 1, 0.5)
+    group1.add(points)
 }
 
+for (let i = 0; i < 80; i++) {
+    createPoints(i * 0.1 + 2.0, i * 0.02)
+}
+
+
+const rotatePoints = function () {
+    group1.rotation.x = Math.PI * 0.5
+    group1.rotation.y = absTime * 0.1
+    group1.rotation.z = absTime * 0.2
+}
+
+
+const scalePoints = function () {
+    const s = Math.abs(Math.sin(absTime * 0.2)) * 0.8 + 0.2
+    group1.scale.setScalar(s)
+}
 
 
 
@@ -62,27 +64,7 @@ lights.add(ambientLight)
 
 const light1 = new THREE.DirectionalLight(0xffffff, 0.2)
 light1.position.set(-2, 1, 4)
-
-light1.castShadow = true
-light1.shadow.camera.near = 2
-light1.shadow.camera.far = 8
-light1.shadow.camera.top = 1
-light1.shadow.camera.bottom = -1
-light1.shadow.camera.left = -2
-light1.shadow.camera.right = 2
-
 lights.add(light1)
-
-const pointLight1 = new THREE.PointLight('hsl(240, 80%, 50%)', 2)
-pointLight1.castShadow = true
-pointLight1.shadow.camera.far = 4
-lights.add(pointLight1)
-
-const pointLight2 = new THREE.PointLight('hsl(40, 20%, 50%)', 0.8)
-pointLight2.castShadow = true
-pointLight2.shadow.camera.far = 4
-lights.add(pointLight2)
-
 
 
 /*
@@ -94,8 +76,6 @@ lights.add(pointLight2)
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight)
 camera.position.set(0, 0, 4)
 scene.add(camera)
-
-scene.fog = new THREE.Fog('hsl(0, 0%, 0%)', 2, 8)
 
 
 /*
@@ -165,8 +145,8 @@ let absTime
 function animate() {
     absTime = clock.getElapsedTime()
 
-    pointLight1.position.set(Math.sin(absTime), 0, Math.cos(absTime))
-    pointLight2.position.set(Math.sin(absTime * 0.2) * 1.4, 0, Math.cos(absTime * 0.2) * 1.4)
+    rotatePoints()
+    scalePoints()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
