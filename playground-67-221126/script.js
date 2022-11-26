@@ -13,40 +13,62 @@ const scene = new THREE.Scene()
     Geometry
 */
 
+
 const group1 = new THREE.Group()
 scene.add(group1)
 
-const createPoints = function (s, c) {
+
+const vertices = []
+
+for (let i = 0; i < 400; i++) {
+    const c = Math.random() * Math.PI * 2
+
+    const x = Math.sin(c)
+    const y = Math.random() * 2 - 1
+    const z = Math.cos(c)
+
+    vertices.push(x, y, z)
+}
+
+const geometry = new THREE.BufferGeometry()
+geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
+
+
+for (let i = 0; i < 20; i++) {
     const points = new THREE.Points(
-        new THREE.SphereGeometry(),
+        geometry,
         new THREE.PointsMaterial({
-            size: 0.02,
-            color: 'hsl(0, 100%, 50%)'
+            size: 0.01
         })
     )
-    points.scale.setScalar(s)
-    points.rotation.y = c
-    points.rotation.z = c * 0.2
-    points.material.color.setHSL(c, 1, 0.5)
+
+    points.scale.set(1 - i / 40, i / 20, 1 - i / 40)
+
     group1.add(points)
 }
 
-for (let i = 0; i < 80; i++) {
-    createPoints(i * 0.1 + 2.0, i * 0.02)
-}
-
-
 const rotatePoints = function () {
-    group1.rotation.x = Math.PI * 0.5
-    group1.rotation.y = absTime * 0.1
-    group1.rotation.z = absTime * 0.2
+    group1.rotation.x = absTime * 0.4
 }
-
 
 const scalePoints = function () {
-    const s = Math.abs(Math.sin(absTime * 0.2)) * 0.8 + 0.2
-    group1.scale.setScalar(s)
+    group1.scale.y = Math.abs(Math.sin(absTime * 0.4)) + 0.2
 }
+
+
+const changeColors = function (c) {
+    group1.children.forEach((mesh, index) => {
+        const r = index / group1.children.length
+        mesh.material.color.setHSL(c, r, 0.5)
+    });
+}
+
+changeColors(1)
+
+
+setInterval(function () {
+    changeColors(Math.random() * 0.4)
+}, 2000)
 
 
 
