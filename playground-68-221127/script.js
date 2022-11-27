@@ -14,61 +14,47 @@ const scene = new THREE.Scene()
 */
 
 
+const cube = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 2, 0.4),
+    new THREE.MeshStandardMaterial({
+        color: 'hsl(0, 0%, 20%)'
+    })
+)
+
+cube.receiveShadow = true
+
+scene.add(cube)
+
+
 const group1 = new THREE.Group()
 scene.add(group1)
 
 
-const vertices = []
-
-for (let i = 0; i < 400; i++) {
-    const c = Math.random() * Math.PI * 2
-
-    const x = Math.sin(c)
-    const y = Math.random() * 2 - 1
-    const z = Math.cos(c)
-
-    vertices.push(x, y, z)
-}
-
-const geometry = new THREE.BufferGeometry()
-geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3))
-
-
-for (let i = 0; i < 20; i++) {
-    const points = new THREE.Points(
-        geometry,
-        new THREE.PointsMaterial({
-            size: 0.01
+for (let i = 0; i < 40; i++) {
+    const cube = new THREE.Mesh(
+        new THREE.BoxGeometry(),
+        new THREE.MeshStandardMaterial({
+            color: 'hsl(0, 0%, 40%)'
         })
     )
 
-    points.scale.set(1 - i / 40, i / 20, 1 - i / 40)
+    const p = {
+        x: (Math.random() - 0.5) * 0.9,
+        y: (Math.random() - 0.5) * 1.9,
+        z: Math.random() * 0.4 + 0.2
+    }
 
-    group1.add(points)
+    cube.material.color.setHSL((p.y + 2) / 8 + 0.4, 0.5, 0.4)
+
+    cube.position.set(p.x, p.y, p.z)
+    cube.scale.setScalar(0.1)
+
+    cube.castShadow = true
+    cube.receiveShadow = true
+
+    group1.add(cube)
 }
 
-const rotatePoints = function () {
-    group1.rotation.x = absTime * 0.4
-}
-
-const scalePoints = function () {
-    group1.scale.y = Math.abs(Math.sin(absTime * 0.4)) + 0.2
-}
-
-
-const changeColors = function (c) {
-    group1.children.forEach((mesh, index) => {
-        const r = index / group1.children.length
-        mesh.material.color.setHSL(c, r, 0.5)
-    });
-}
-
-changeColors(1)
-
-
-setInterval(function () {
-    changeColors(Math.random() * 0.4)
-}, 2000)
 
 
 
@@ -81,12 +67,26 @@ setInterval(function () {
 const lights = new THREE.Group()
 scene.add(lights)
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.1)
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.4)
 lights.add(ambientLight)
 
-const light1 = new THREE.DirectionalLight(0xffffff, 0.2)
+const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
 light1.position.set(-2, 1, 4)
 lights.add(light1)
+
+light1.castShadow = true
+
+light1.shadow.mapSize.width = 1024
+light1.shadow.mapSize.height = 1024
+
+light1.shadow.camera.near = 3
+light1.shadow.camera.far = 6
+
+light1.shadow.camera.top = 1
+light1.shadow.camera.right = 0.8
+light1.shadow.camera.bottom = -1
+light1.shadow.camera.left = -0.8
+
 
 
 /*
@@ -166,9 +166,6 @@ let absTime
 
 function animate() {
     absTime = clock.getElapsedTime()
-
-    rotatePoints()
-    scalePoints()
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
