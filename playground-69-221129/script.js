@@ -14,46 +14,56 @@ const scene = new THREE.Scene()
 */
 
 
-const cube = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 2, 0.4),
-    new THREE.MeshStandardMaterial({
-        color: 'hsl(0, 0%, 20%)'
-    })
-)
 
-cube.receiveShadow = true
+class Structure {
+    constructor (num = 20) {
+        this.num = num
+        this.group = new THREE.Group()
 
-scene.add(cube)
-
-
-const group1 = new THREE.Group()
-scene.add(group1)
-
-
-for (let i = 0; i < 40; i++) {
-    const cube = new THREE.Mesh(
-        new THREE.BoxGeometry(),
-        new THREE.MeshStandardMaterial({
-            color: 'hsl(0, 0%, 40%)'
-        })
-    )
-
-    const p = {
-        x: (Math.random() - 0.5) * 0.9,
-        y: (Math.random() - 0.5) * 1.9,
-        z: Math.random() * 0.4 + 0.2
+        this.createMeshes()
     }
 
-    cube.material.color.setHSL((p.y + 2) / 8 + 0.4, 0.5, 0.4)
+    createMeshes() {
+        for (let i = 0; i < this.num; i++) {
+            const box = new THREE.Mesh(
+                new THREE.BoxGeometry(),
+                new THREE.MeshStandardMaterial()
+            )
+            this.group.add(box)
+        }
+        scene.add(this.group)
+    }
 
-    cube.position.set(p.x, p.y, p.z)
-    cube.scale.setScalar(0.1)
+    setSize(s = 2, h = 0.1) {
+        this.group.children.forEach((mesh, index) => {
+            mesh.scale.x = s - (index / this.num) * s
+            mesh.scale.y = h
+            mesh.scale.z = s - (index / this.num) * s
 
-    cube.castShadow = true
-    cube.receiveShadow = true
+            mesh.position.y = index * h * 1.1
+        })
 
-    group1.add(cube)
+        this.group.position.y = (this.num * h) * -0.5
+    }
+
+    rotate(t) {
+        this.group.children.forEach((mesh, index) => {
+            mesh.rotation.y = index * Math.sin(t * 0.1) * 0.2 + t
+        });
+    }
+
+    changeColor(t) {
+        this.group.children.forEach((mesh, index) => {
+            const d = Math.sin(index * 0.5 + t)
+            mesh.material.color.setHSL(index * 0.02 + 0.4, d, 0.4)
+        });
+    }
 }
+
+const structure1 = new Structure()
+
+structure1.setSize()
+
 
 
 
@@ -166,6 +176,9 @@ let absTime
 
 function animate() {
     absTime = clock.getElapsedTime()
+
+    structure1.rotate(absTime)
+    structure1.changeColor(absTime)
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
