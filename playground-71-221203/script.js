@@ -15,93 +15,87 @@ const scene = new THREE.Scene()
 
 
 
-class Structure {
-    constructor (num = 20) {
-        this.num = num
-        this.group = new THREE.Group()
+class Step {
+    constructor() {
+        this.stepGroup = new THREE.Group()
+        this.hover = false
 
-        this.createMeshes()
+        this.createStepGroup()
+        this.createStep()
+        this.createHelpers()
     }
 
-    createMeshes() {
-        for (let i = 0; i < this.num; i++) {
-            const box = new THREE.Mesh(
-                new THREE.BoxGeometry(),
-                new THREE.MeshStandardMaterial()
-            )
-            this.group.add(box)
+    createStepGroup() {
+        scene.add(this.stepGroup)
+    }
+
+    createMesh() {
+        const mesh = new THREE.Mesh(
+            new THREE.BoxGeometry(),
+            new THREE.MeshStandardMaterial()
+        )
+        return mesh
+    }
+
+    createStep() {
+        this.step = this.createMesh()
+        this.stepGroup.add(this.step)
+    }
+
+    checkHover() {
+        const intersects = raycaster.intersectObject(this.step)
+        let intersectionState = intersects.length > 0 ? true : false
+        this.hover = intersectionState
+    }
+
+    highlightStepOnHover() {
+        if (this.hover == true) {
+            this.step.material.color.setHSL(0.6, 0.8, 0.5)
+        } else {
+            this.step.material.color.setHSL(0, 0, 1)
         }
-        scene.add(this.group)
     }
 
-    setSize(s = 2, h = 0.1) {
-        this.group.children.forEach((mesh, index) => {
-            mesh.scale.x = s - (index / this.num) * s * 0.2
-            mesh.scale.y = h
-            mesh.scale.z = s - (index / this.num) * s
+    toggleHelpers() {
+        const helperVisibility = this.helperGroup.visible
+        if (this.hover == true && helperVisibility == false) {
+            this.helperGroup.visible = true
+        } else {
+            this.helperGroup.visible = false
+        }
+    }
 
-            if (index%2 == 1) {mesh.scale.x = mesh.scale.x * 1.2}
-            if (index%4 == 1) {mesh.scale.setScalar(0)}
+    createHelpers() {
+        const helperPositions = [
+            {x:1, y:0, z:0},
+            {x: -1, y:0, z:0},
+            {x:0, y:1, z:0},
+            {x:0, y:-1, z:0},
+            {x:0, y:0, z:1},
+            {x:0, y:0, z:-1},
+        ]
 
-            mesh.position.y = index * h * 1.1
+        this.helperGroup = new THREE.Group()
+        this.stepGroup.add(this.helperGroup)
+
+        helperPositions.forEach(position => {
+            const helper = this.createMesh()
+            helper.position.set(position.x, position.y, position.z)
+            helper.scale.setScalar(0.4)
+            this.helperGroup.add(helper)
         })
-
-        this.group.position.y = (this.num * h) * -0.5
-    }
-
-    rotate(t) {
-        this.group.children.forEach((mesh, index) => {
-            mesh.rotation.y = index * Math.sin(t * 0.1) * 0.2 + t
-        });
-    }
-
-    changeColor(t) {
-        this.group.children.forEach((mesh, index) => {
-            const d = Math.sin(index * 0.8 + t)
-            mesh.material.color.setHSL(index * 0.02 + 0.4, d, 0.4)
-        });
     }
 }
 
-const structure1 = new Structure()
-structure1.setSize()
+const step = new Step()
 
 
-class Box {
-    constructor(num) {
-        this.num = num
-        this.group = new THREE.Group()
+const raycaster = new THREE.Raycaster()
 
-        this.createBox()
-    }
 
-    createBox() {
-        for (let i = 0; i < this.num; i++) {    
-            const box = new THREE.Mesh(
-                new THREE.BoxGeometry(),
-                new THREE.MeshStandardMaterial()
-            )
-            this.group.add(box)
-        }
-
-        scene.add(this.group)
-    }
-
-    setSize() {
-        this.group.children.forEach(mesh => {
-            mesh.scale.set(Math.random() * 0.2, Math.random() * 0.2, Math.random() * 0.2)
-            mesh.rotation.set(Math.random() * Math.PI * 2.0, Math.random() * Math.PI * 2.0, Math.random() * Math.PI * 2.0)
-            mesh.position.set((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4)
-        });
-
-    }
+const setRaycaster = function () {
+    raycaster.setFromCamera(cursor, camera)
 }
-
-const box1 = new Box(20)
-
-setInterval(function() {
-    box1.setSize()
-}, 400)
 
 
 
@@ -199,6 +193,15 @@ const cursor = new THREE.Vector2()
 window.addEventListener('mousemove', function (event) {
     cursor.x = (event.clientX / window.innerWidth) * 2 - 1
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
+
+    setRaycaster()
+    step.checkHover()
+    step.highlightStepOnHover()
+})
+
+
+window.addEventListener('mousedown', function () {
+    step.toggleHelpers()
 })
 
 
@@ -214,8 +217,6 @@ let absTime
 function animate() {
     absTime = clock.getElapsedTime()
 
-    structure1.rotate(absTime * 0.4)
-    structure1.changeColor(absTime)
 
     renderer.render(scene, camera)
     requestAnimationFrame(animate)
