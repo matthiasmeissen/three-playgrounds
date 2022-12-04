@@ -16,17 +16,39 @@ const scene = new THREE.Scene()
 
 
 class Step {
-    constructor() {
-        this.stepGroup = new THREE.Group()
-        this.hover = false
+    constructor(pos) {
+        this.pos = pos
 
-        this.createStepGroup()
         this.createStep()
-        this.createHelpers()
     }
 
-    createStepGroup() {
-        scene.add(this.stepGroup)
+    createStep() {
+        this.step = new THREE.Mesh(
+            new THREE.BoxGeometry(),
+            new THREE.MeshStandardMaterial()
+        )
+        scene.add(this.step)
+    }
+
+    checkHover() {
+        const intersects = raycaster.intersectObject(this.step)
+
+        this.step.material.color.setHSL(0, 1, 1)
+
+        if (intersects.length > 0) {
+            this.step.material.color.setHSL(0.6, 0.8, 0.4)
+        }
+    }
+}
+
+const step = new Step()
+
+
+class Helpers {
+    constructor() {
+        this.group = new THREE.Group()
+
+        this.createHelpers()
     }
 
     createMesh() {
@@ -35,34 +57,6 @@ class Step {
             new THREE.MeshStandardMaterial()
         )
         return mesh
-    }
-
-    createStep() {
-        this.step = this.createMesh()
-        this.stepGroup.add(this.step)
-    }
-
-    checkHover() {
-        const intersects = raycaster.intersectObject(this.step)
-        let intersectionState = intersects.length > 0 ? true : false
-        this.hover = intersectionState
-    }
-
-    highlightStepOnHover() {
-        if (this.hover == true) {
-            this.step.material.color.setHSL(0.6, 0.8, 0.5)
-        } else {
-            this.step.material.color.setHSL(0, 0, 1)
-        }
-    }
-
-    toggleHelpers() {
-        const helperVisibility = this.helperGroup.visible
-        if (this.hover == true && helperVisibility == false) {
-            this.helperGroup.visible = true
-        } else {
-            this.helperGroup.visible = false
-        }
     }
 
     createHelpers() {
@@ -75,19 +69,36 @@ class Step {
             {x:0, y:0, z:-1},
         ]
 
-        this.helperGroup = new THREE.Group()
-        this.stepGroup.add(this.helperGroup)
-
         helperPositions.forEach(position => {
             const helper = this.createMesh()
             helper.position.set(position.x, position.y, position.z)
             helper.scale.setScalar(0.4)
-            this.helperGroup.add(helper)
+            this.group.add(helper)
         })
+
+        scene.add(this.group)
+    }
+
+    checkHover() {
+        const intersects = raycaster.intersectObjects(this.group.children)
+
+        this.group.children.forEach(mesh => {
+            mesh.material.color.setHSL(0, 0, 0.2)
+        });
+
+        if (intersects.length > 0) {
+            intersects[0].object.material.color.setHSL(0, 0, 1)
+        }
+    }
+
+    setPosition(p = {x:0, y:0, z:0}) {
+        this.group.position.set(p)
     }
 }
 
-const step = new Step()
+
+const helpers = new Helpers()
+
 
 
 const raycaster = new THREE.Raycaster()
@@ -196,12 +207,7 @@ window.addEventListener('mousemove', function (event) {
 
     setRaycaster()
     step.checkHover()
-    step.highlightStepOnHover()
-})
-
-
-window.addEventListener('mousedown', function () {
-    step.toggleHelpers()
+    helpers.checkHover()
 })
 
 
