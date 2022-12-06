@@ -18,6 +18,7 @@ const scene = new THREE.Scene()
 class Step {
     constructor(pos) {
         this.pos = pos
+        this.isHovered = false
 
         this.createStep()
     }
@@ -27,26 +28,37 @@ class Step {
             new THREE.BoxGeometry(),
             new THREE.MeshStandardMaterial()
         )
+        this.step.position.set(this.pos.x, this.pos.y, this.pos.z)
         scene.add(this.step)
     }
 
     checkHover() {
         const intersects = raycaster.intersectObject(this.step)
 
-        this.step.material.color.setHSL(0, 1, 1)
-
         if (intersects.length > 0) {
+            this.isHovered = true
+        } else {
+            this.isHovered = false
+        }
+    }
+
+    changeColorOnHover() {
+        this.checkHover()
+        if (this.isHovered) {
             this.step.material.color.setHSL(0.6, 0.8, 0.4)
+        } else {
+            this.step.material.color.setHSL(0, 1, 1)
         }
     }
 }
 
-const step = new Step()
 
 
 class Helpers {
     constructor() {
         this.group = new THREE.Group()
+        this.isHovered = false
+        this.hoverPosition = new THREE.Vector3()
 
         this.createHelpers()
     }
@@ -88,21 +100,29 @@ class Helpers {
 
         if (intersects.length > 0) {
             intersects[0].object.material.color.setHSL(0, 0, 1)
+            this.isHovered = true
+            intersects[0].object.getWorldPosition(this.hoverPosition)
+        } else {
+            this.isHovered = false
         }
     }
 
-    setPosition(p = {x:0, y:0, z:0}) {
-        this.group.position.set(p)
+    getHoverPosition() {
+        if (this.isHovered == true) {
+            return this.hoverPosition
+        }
     }
 }
 
 
+
+const steps = []
+steps.push(new Step({x:0, y:0, z:0}))
+
 const helpers = new Helpers()
 
 
-
 const raycaster = new THREE.Raycaster()
-
 
 const setRaycaster = function () {
     raycaster.setFromCamera(cursor, camera)
@@ -206,8 +226,24 @@ window.addEventListener('mousemove', function (event) {
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
 
     setRaycaster()
-    step.checkHover()
+
+    steps.forEach(step => {
+        step.changeColorOnHover()
+        if (step.isHovered == true) {
+            helpers.group.position.set(step.pos.x, step.pos.y, step.pos.y)
+        }
+    })
+
     helpers.checkHover()
+})
+
+
+window.addEventListener('mousedown', function () {
+    const pos = helpers.getHoverPosition()
+
+    if (pos) {
+        steps.push(new Step({x: pos.x, y: pos.y, z: pos.z}))
+    }
 })
 
 
