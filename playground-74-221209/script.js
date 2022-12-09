@@ -13,120 +13,41 @@ const scene = new THREE.Scene()
     Geometry
 */
 
+const points = []
 
-
-class Step {
-    constructor(pos) {
-        this.pos = pos
-        this.isHovered = false
-
-        this.createStep()
+for (let i = 0; i < 101; i++) {
+    const n = (i / 100) * Math.PI * 2
+    const p = {
+        x: Math.sin(n),
+        y: Math.cos(n),
+        z:0
     }
+    points.push(new THREE.Vector3(p.x, p.y, p.z))
+}
 
-    createStep() {
-        this.step = new THREE.Mesh(
-            new THREE.BoxGeometry(),
-            new THREE.MeshStandardMaterial()
-        )
-        this.step.position.set(this.pos.x, this.pos.y, this.pos.z)
-        scene.add(this.step)
-    }
+const geometry = new THREE.BufferGeometry().setFromPoints(points)
 
-    checkHover() {
-        const intersects = raycaster.intersectObject(this.step)
 
-        if (intersects.length > 0) {
-            this.isHovered = true
-        } else {
-            this.isHovered = false
-        }
-    }
+const group = new THREE.Group()
+scene.add(group)
 
-    changeColorOnHover() {
-        this.checkHover()
-        if (this.isHovered) {
-            this.step.material.color.setHSL(0.6, 0.8, 0.4)
-        } else {
-            this.step.material.color.setHSL(0, 1, 1)
-        }
-    }
+
+const createCircle = function () {
+    const circle = new THREE.Line(geometry, new THREE.LineBasicMaterial())
+    group.add(circle)
 }
 
 
-
-class Helpers {
-    constructor() {
-        this.group = new THREE.Group()
-        this.isHovered = false
-        this.hoverPosition = new THREE.Vector3()
-
-        this.createHelpers()
-    }
-
-    createMesh() {
-        const mesh = new THREE.Mesh(
-            new THREE.BoxGeometry(),
-            new THREE.MeshStandardMaterial()
-        )
-        return mesh
-    }
-
-    createHelpers() {
-        const helperPositions = [
-            {x:1, y:0, z:0},
-            {x: -1, y:0, z:0},
-            {x:0, y:1, z:0},
-            {x:0, y:-1, z:0},
-            {x:0, y:0, z:1},
-            {x:0, y:0, z:-1},
-        ]
-
-        helperPositions.forEach(position => {
-            const helper = this.createMesh()
-            helper.position.set(position.x, position.y, position.z)
-            helper.scale.setScalar(0.4)
-            this.group.add(helper)
-        })
-
-        scene.add(this.group)
-    }
-
-    checkHover() {
-        const intersects = raycaster.intersectObjects(this.group.children)
-
-        this.group.children.forEach(mesh => {
-            mesh.material.color.setHSL(0, 0, 0.2)
-        });
-
-        if (intersects.length > 0) {
-            intersects[0].object.material.color.setHSL(0, 0, 1)
-            this.isHovered = true
-            intersects[0].object.getWorldPosition(this.hoverPosition)
-        } else {
-            this.isHovered = false
-        }
-    }
-
-    getHoverPosition() {
-        if (this.isHovered == true) {
-            return this.hoverPosition
-        }
-    }
+for (let i = 0; i < 40; i++) {
+    createCircle()
 }
 
-
-
-const steps = []
-steps.push(new Step({x:0, y:0, z:0}))
-
-const helpers = new Helpers()
-
-
-const raycaster = new THREE.Raycaster()
-
-const setRaycaster = function () {
-    raycaster.setFromCamera(cursor, camera)
-}
+group.children.forEach((mesh, index) => {
+    const n = index / group.children.length
+    mesh.scale.setScalar(1.0 - n)
+    mesh.rotation.y = n * 8.0
+    mesh.rotation.y = n * 4.0
+});
 
 
 
@@ -145,19 +66,6 @@ lights.add(ambientLight)
 const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
 light1.position.set(-2, 1, 4)
 lights.add(light1)
-
-light1.castShadow = true
-
-light1.shadow.mapSize.width = 1024
-light1.shadow.mapSize.height = 1024
-
-light1.shadow.camera.near = 3
-light1.shadow.camera.far = 6
-
-light1.shadow.camera.top = 1
-light1.shadow.camera.right = 0.8
-light1.shadow.camera.bottom = -1
-light1.shadow.camera.left = -0.8
 
 
 
@@ -224,26 +132,6 @@ const cursor = new THREE.Vector2()
 window.addEventListener('mousemove', function (event) {
     cursor.x = (event.clientX / window.innerWidth) * 2 - 1
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
-
-    setRaycaster()
-
-    steps.forEach(step => {
-        step.changeColorOnHover()
-        if (step.isHovered == true) {
-            helpers.group.position.set(step.pos.x, step.pos.y, step.pos.y)
-        }
-    })
-
-    helpers.checkHover()
-})
-
-
-window.addEventListener('mousedown', function () {
-    const pos = helpers.getHoverPosition()
-
-    if (pos) {
-        steps.push(new Step({x: pos.x, y: pos.y, z: pos.z}))
-    }
 })
 
 
@@ -258,6 +146,9 @@ let absTime
 
 function animate() {
     absTime = clock.getElapsedTime()
+
+    group.rotation.y = absTime
+    group.rotation.z = absTime * 0.4
 
 
     renderer.render(scene, camera)
