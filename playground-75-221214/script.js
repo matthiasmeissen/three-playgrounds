@@ -38,15 +38,37 @@ const createCircle = function () {
 }
 
 
-for (let i = 0; i < 40; i++) {
+for (let i = 0; i < 60; i++) {
     createCircle()
 }
+
+
+const rotateCircles = function (r) {
+    group.children.forEach((mesh, index) => {
+        const n = index / group.children.length
+        mesh.rotation.x = n * r.x
+        mesh.rotation.y = n * r.y
+        mesh.rotation.z = n * r.z
+    });
+}
+
+
+const scaleCircles = function (s) {
+    group.children.forEach((mesh, index) => {
+        const n = index / group.children.length
+        const d = {
+            x: (1.0 - n) * s.x,
+            y: (1.0 - n) * s.y,
+            z: (1.0 - n) * s.z
+        }
+        mesh.scale.set(d.x, d.y, d.z)
+    });
+}
+
 
 group.children.forEach((mesh, index) => {
     const n = index / group.children.length
     mesh.scale.setScalar(1.0 - n)
-    mesh.rotation.y = n * 8.0
-    mesh.rotation.y = n * 4.0
 });
 
 
@@ -149,6 +171,10 @@ function animate() {
 
     group.rotation.y = absTime
     group.rotation.z = absTime * 0.4
+
+    rotateCircles({x: Math.sin(absTime) * 4, y: Math.sin(absTime * 0.4) * 2, z:0})
+
+    scaleCircles({x: Math.sin(absTime * 0.02) + 1, y: Math.sin(absTime * 0.4) + 1.2, z: 1})
 
 
     renderer.render(scene, camera)
