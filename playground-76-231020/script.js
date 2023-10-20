@@ -1,184 +1,157 @@
-import * as THREE from 'https://cdn.skypack.dev/three@0.132.2'
-import { OrbitControls } from 'https://cdn.skypack.dev/three@0.132.2/examples/jsm/controls/OrbitControls.js'
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// -----------------------
+// Initial Setup
+// -----------------------
+
+const canvas = document.querySelector('canvas.webgl');
+const scene = new THREE.Scene();
+const renderer = new THREE.WebGLRenderer({ canvas });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+const raycaster = new THREE.Raycaster();
+const cursor = new THREE.Vector2();
+const clock = new THREE.Clock();
+
+// -----------------------
+// Geometries and Meshes
+// -----------------------
+
+const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    new THREE.MeshStandardMaterial({ color: 0xff0000 })
+);
+
+mesh.material.color.setHSL(0.5, 0.5, 0.5);
+scene.add(mesh);
 
 
-const canvas = document.querySelector('canvas.webgl')
+const lineGroup = new THREE.Group();
+scene.add(lineGroup);
 
-
-// Scene
-const scene = new THREE.Scene()
-
-
-/*
-    Geometry
-*/
-
-const points = []
-
-for (let i = 0; i < 101; i++) {
-    const n = (i / 100) * Math.PI * 2
-    const p = {
-        x: Math.sin(n),
-        y: Math.cos(n),
-        z:0
-    }
-    points.push(new THREE.Vector3(p.x, p.y, p.z))
+for (let i = 0; i < 100; i++) {
+    const line = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffffff }));
+    lineGroup.add(line);
 }
 
-const geometry = new THREE.BufferGeometry().setFromPoints(points)
+const mesh2 = new THREE.Mesh(
+    new THREE.BoxGeometry(0.2, 0.2, 0.2),
+    new THREE.MeshStandardMaterial({ color: 0xff0000 })
+);
 
+scene.add(mesh2);
 
-const group = new THREE.Group()
-scene.add(group)
+// -----------------------
+// Lights
+// -----------------------
 
+const createLights = () => {
+    const lights = new THREE.Group();
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.4);
+    lights.add(ambientLight);
 
-const createCircle = function () {
-    const circle = new THREE.Line(geometry, new THREE.LineBasicMaterial())
-    group.add(circle)
-}
+    const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
+    light1.position.set(-2, 1, 4);
+    lights.add(light1);
 
+    scene.add(lights);
+};
 
-for (let i = 0; i < 60; i++) {
-    createCircle()
-}
+createLights();
 
+// -----------------------
+// Camera and Controls
+// -----------------------
 
-const rotateCircles = function (r) {
-    group.children.forEach((mesh, index) => {
-        const n = index / group.children.length
-        mesh.rotation.x = n * r.x
-        mesh.rotation.y = n * r.y
-        mesh.rotation.z = n * r.z
-    });
-}
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 0, 4);
+const orbitControls = new OrbitControls(camera, renderer.domElement);
 
+// -----------------------
+// Event Listeners
+// -----------------------
 
-const scaleCircles = function (s) {
-    group.children.forEach((mesh, index) => {
-        const n = index / group.children.length
-        const d = {
-            x: (1.0 - n) * s.x,
-            y: (1.0 - n) * s.y,
-            z: (1.0 - n) * s.z
-        }
-        mesh.scale.set(d.x, d.y, d.z)
-    });
-}
-
-
-group.children.forEach((mesh, index) => {
-    const n = index / group.children.length
-    mesh.scale.setScalar(1.0 - n)
-});
-
-
-
-/*
-    Lights
-*/
-
-
-// Construction
-const lights = new THREE.Group()
-scene.add(lights)
-
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.4)
-lights.add(ambientLight)
-
-const light1 = new THREE.DirectionalLight(0xffffff, 0.8)
-light1.position.set(-2, 1, 4)
-lights.add(light1)
-
-
-
-/*
-    Camera
-*/
-
-
-// Construction
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight)
-camera.position.set(0, 0, 4)
-scene.add(camera)
-
-
-/*
-    Renderer
-*/
-
-
-// Construction
-const renderer = new THREE.WebGLRenderer({ canvas })
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
-renderer.setSize(window.innerWidth, window.innerHeight)
-renderer.shadowMap.enabled = true
-
-// Functions
-window.addEventListener('resize', onWindowResize);
-
-function onWindowResize() {
+window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
-}
+});
 
-const orbitControls = new OrbitControls(camera, renderer.domElement)
-
-
-// Fullscreen
-
-window.addEventListener('dblclick', function () {
-
-    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement
-
+window.addEventListener('dblclick', () => {
+    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
     if (!fullscreenElement) {
         if (canvas.requestFullscreen) {
-            canvas.requestFullscreen()
+            canvas.requestFullscreen();
         } else if (canvas.webkitRequestFullscreen) {
-            canvas.webkitRequestFullscreen()
+            canvas.webkitRequestFullscreen();
         }
     } else {
         if (document.exitFullscreen) {
-            document.exitFullscreen()
+            document.exitFullscreen();
         } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen()
+            document.webkitExitFullscreen();
         }
     }
-})
+});
 
+window.addEventListener('mousemove', (event) => {
+    cursor.x = (event.clientX / window.innerWidth) * 2 - 1;
+    cursor.y = - (event.clientY / window.innerHeight) * 2 + 1;
+});
 
-// Mouse Position
+// -----------------------
+// Raycaster
+// -----------------------
 
-const cursor = new THREE.Vector2()
+const raycasterUpdate = (callback) => {
+    raycaster.setFromCamera(cursor, camera);
+    const intersects = raycaster.intersectObject(mesh);
+    let distanceToMesh = null;
 
-window.addEventListener('mousemove', function (event) {
-    cursor.x = (event.clientX / window.innerWidth) * 2 - 1
-    cursor.y = - (event.clientY / window.innerHeight) * 2 + 1
-})
+    if (intersects.length > 0) {
+        distanceToMesh = intersects[0].distance.toPrecision(4);
 
+        mesh2.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z)
 
+        setLinePoints(intersects[0].point);
+    } else {
+        setLinePoints(new THREE.Vector3(0, 0, 0));
+    }
 
-// Clock
-
-const clock = new THREE.Clock()
-let absTime
-
-
-// Animate
-
-function animate() {
-    absTime = clock.getElapsedTime()
-
-    group.rotation.y = absTime
-    group.rotation.z = absTime * 0.4
-
-    rotateCircles({x: Math.sin(absTime) * 4, y: Math.sin(absTime * 0.4) * 2, z:0})
-
-    scaleCircles({x: Math.sin(absTime * 0.02) + 1, y: Math.sin(absTime * 0.4) + 1.2, z: 1})
-
-
-    renderer.render(scene, camera)
-    requestAnimationFrame(animate)
+    callback(distanceToMesh);
 }
 
-animate()
+const setLinePoints = (targetPoint) => {
+    lineGroup.children.forEach((line, index) => {
+        const points = [
+            new THREE.Vector3((lineGroup.children.length / 2 - index) * 0.1, 2, Math.sin(index)),
+            targetPoint
+        ]
+        line.geometry.setFromPoints(points);
+    });
+}
+
+const setLineToMesh = (distance) => {
+    if (distance !== null) {
+        console.log(distance);
+    } else {
+        console.log('no intersection');
+    }
+}
+
+
+// -----------------------
+// Animation
+// -----------------------
+
+const animate = () => {
+    const absTime = clock.getElapsedTime();
+
+    raycasterUpdate(setLineToMesh);
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(animate);
+};
+
+animate();
