@@ -18,29 +18,43 @@ const clock = new THREE.Clock();
 // Geometries and Meshes
 // -----------------------
 
-const mesh = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    new THREE.MeshStandardMaterial({ color: 0xff0000 })
-);
+const sphereGroup = new THREE.Group();
+scene.add(sphereGroup);
 
-mesh.material.color.setHSL(0.5, 0.5, 0.5);
-scene.add(mesh);
+const createSphere = (position) => {
+    const sphere = new THREE.Mesh(
+        new THREE.SphereGeometry(0.2, 16, 16),
+        new THREE.MeshStandardMaterial()
+    );
+    sphere.material.color.setHSL(0, 0, 0.5);
+    sphere.position.set(position.x, position.y, position.z);
+    sphereGroup.add(sphere);
+}
 
+for (let i = 0; i < 20; i++) {
+    const position = {
+        x: (Math.random() - 0.5) * 4,
+        y: (Math.random() - 0.5) * 4,
+        z: (Math.random() - 0.5) * 4
+    }
+    createSphere(position);
+}
+
+
+const linePoints = []
 
 const lineGroup = new THREE.Group();
 scene.add(lineGroup);
 
-for (let i = 0; i < 100; i++) {
+for (let i = 0; i < 20; i++) {
     const line = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffffff }));
     lineGroup.add(line);
+
+    const originPoint = new THREE.Vector3((Math.random() - 0.5) * 4.0, (Math.random() - 0.5) * 4.0, (Math.random() - 0.5) * 4.0);
+    const targetPoint = new THREE.Vector3(0, 0, 0);
+
+    linePoints.push([ originPoint, targetPoint ]);
 }
-
-const mesh2 = new THREE.Mesh(
-    new THREE.BoxGeometry(0.2, 0.2, 0.2),
-    new THREE.MeshStandardMaterial({ color: 0xff0000 })
-);
-
-scene.add(mesh2);
 
 // -----------------------
 // Lights
@@ -104,40 +118,25 @@ window.addEventListener('mousemove', (event) => {
 // Raycaster
 // -----------------------
 
-const raycasterUpdate = (callback) => {
+const raycasterUpdate = () => {
     raycaster.setFromCamera(cursor, camera);
-    const intersects = raycaster.intersectObject(mesh);
+    const intersects = raycaster.intersectObjects(scene.children);
     let distanceToMesh = null;
 
     if (intersects.length > 0) {
         distanceToMesh = intersects[0].distance.toPrecision(4);
 
-        mesh2.position.set(intersects[0].point.x, intersects[0].point.y, intersects[0].point.z)
-
         setLinePoints(intersects[0].point);
     } else {
         setLinePoints(new THREE.Vector3(0, 0, 0));
     }
-
-    callback(distanceToMesh);
 }
 
 const setLinePoints = (targetPoint) => {
     lineGroup.children.forEach((line, index) => {
-        const points = [
-            new THREE.Vector3((lineGroup.children.length / 2 - index) * 0.1, 2, Math.sin(index)),
-            targetPoint
-        ]
-        line.geometry.setFromPoints(points);
+        linePoints[index][1] = targetPoint;
+        line.geometry.setFromPoints(linePoints[index]);
     });
-}
-
-const setLineToMesh = (distance) => {
-    if (distance !== null) {
-        console.log(distance);
-    } else {
-        console.log('no intersection');
-    }
 }
 
 
@@ -148,7 +147,7 @@ const setLineToMesh = (distance) => {
 const animate = () => {
     const absTime = clock.getElapsedTime();
 
-    raycasterUpdate(setLineToMesh);
+    raycasterUpdate();
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
