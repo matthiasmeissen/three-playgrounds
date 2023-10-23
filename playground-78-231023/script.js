@@ -15,7 +15,7 @@ const cursor = new THREE.Vector2();
 const clock = new THREE.Clock();
 
 // -----------------------
-// Geometries and Meshes
+// Sphere Geometry
 // -----------------------
 
 const sphereGroup = new THREE.Group();
@@ -26,7 +26,7 @@ const createSphere = (position) => {
         new THREE.SphereGeometry(0.2, 16, 16),
         new THREE.MeshStandardMaterial()
     );
-    sphere.material.color.setHSL(0, 0, 0.5);
+    sphere.material.color.setHSL(0, 0, 0.1);
     sphere.position.set(position.x, position.y, position.z);
     sphereGroup.add(sphere);
 }
@@ -40,20 +40,45 @@ for (let i = 0; i < 20; i++) {
     createSphere(position);
 }
 
+const changeSphereColor = (index) => {
+    if (index % 4 === 0) {
+        sphereGroup.children.forEach(sphere => {
+            sphere.material.color.setHSL(0, 0, 1);
+        });
+    } else {
+        sphereGroup.children.forEach(sphere => {
+            sphere.material.color.setHSL(0, 0, 0.1);
+        });
+    }
+}
+
+// -----------------------
+// Line Geometry
+// -----------------------
 
 const linePoints = []
-
 const lineGroup = new THREE.Group();
 scene.add(lineGroup);
 
-for (let i = 0; i < 20; i++) {
+for (let i = 0; i < 40; i++) {
     const line = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffffff }));
     lineGroup.add(line);
-
-    const originPoint = new THREE.Vector3((Math.random() - 0.5) * 4.0, (Math.random() - 0.5) * 4.0, (Math.random() - 0.5) * 4.0);
+    const originPoint = new THREE.Vector3((Math.random() - 0.5) * 4.0, Math.sin(i) * 4.0, (Math.random() - 0.5) * 10.0);
     const targetPoint = new THREE.Vector3(0, 0, 0);
-
     linePoints.push([ originPoint, targetPoint ]);
+}
+
+const setLinesToSpherePosition = (index) => {
+    const targetPoint = sphereGroup.children[index % sphereGroup.children.length].position
+    lineGroup.children.forEach((line, index) => {
+        linePoints[index][1] = targetPoint;
+        line.geometry.setFromPoints(linePoints[index]);
+    });
+
+    const lineColor = Math.random()
+    lineGroup.children.forEach((line) => {
+        line.material.color.setHSL(lineColor, 0.9, 0.5);
+    });
 }
 
 // -----------------------
@@ -115,29 +140,26 @@ window.addEventListener('mousemove', (event) => {
 });
 
 // -----------------------
-// Raycaster
+// Interval Counter
 // -----------------------
 
-const raycasterUpdate = () => {
-    raycaster.setFromCamera(cursor, camera);
-    const intersects = raycaster.intersectObjects(scene.children);
-    let distanceToMesh = null;
+class IntervalCounter {
+    constructor() {
+        this.counter = 0
+        this.lastTime = 0
+    }
 
-    if (intersects.length > 0) {
-        distanceToMesh = intersects[0].distance.toPrecision(4);
-
-        setLinePoints(intersects[0].point);
-    } else {
-        setLinePoints(new THREE.Vector3(0, 0, 0));
+    update(inputTime, duration, callback) {
+        if (inputTime - this.lastTime >= duration) {
+            this.counter += 1
+            this.lastTime = inputTime
+            callback(this.counter)
+        }
     }
 }
 
-const setLinePoints = (targetPoint) => {
-    lineGroup.children.forEach((line, index) => {
-        linePoints[index][1] = targetPoint;
-        line.geometry.setFromPoints(linePoints[index]);
-    });
-}
+const intervalCounter1 = new IntervalCounter()
+const intervalCounter2 = new IntervalCounter()
 
 
 // -----------------------
@@ -147,7 +169,8 @@ const setLinePoints = (targetPoint) => {
 const animate = () => {
     const absTime = clock.getElapsedTime();
 
-    raycasterUpdate();
+    intervalCounter1.update(absTime, 0.4, setLinesToSpherePosition)
+    intervalCounter2.update(absTime, 0.4, changeSphereColor)
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
