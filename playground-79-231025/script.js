@@ -15,71 +15,50 @@ const cursor = new THREE.Vector2();
 const clock = new THREE.Clock();
 
 // -----------------------
-// Sphere Geometry
+// Geometry
 // -----------------------
 
-const sphereGroup = new THREE.Group();
-scene.add(sphereGroup);
-
-const createSphere = (position) => {
-    const sphere = new THREE.Mesh(
-        new THREE.SphereGeometry(0.2, 16, 16),
-        new THREE.MeshStandardMaterial()
-    );
-    sphere.material.color.setHSL(0, 0, 0.1);
-    sphere.position.set(position.x, position.y, position.z);
-    sphereGroup.add(sphere);
-}
-
-for (let i = 0; i < 20; i++) {
-    const position = {
-        x: (Math.random() - 0.5) * 4,
-        y: (Math.random() - 0.5) * 4,
-        z: (Math.random() - 0.5) * 4
+class CubeSphere {
+    constructor(radius, resolution) {
+        this.radius = radius;
+        this.resolution = resolution;
+        this.cubeSize = this.radius * 2 / this.resolution;
+        this.createLayers();
     }
-    createSphere(position);
-}
 
-const changeSphereColor = (index) => {
-    if (index % 4 === 0) {
-        sphereGroup.children.forEach(sphere => {
-            sphere.material.color.setHSL(0, 0, 1);
-        });
-    } else {
-        sphereGroup.children.forEach(sphere => {
-            sphere.material.color.setHSL(0, 0, 0.1);
-        });
+    createLayers() {
+        for (let i = 0; i < this.resolution; i++) {
+            const height = -this.radius + i * (this.radius * 2 / this.resolution);
+            const layerRadius = Math.sqrt(this.radius * this.radius - height * height);
+            this.createLayer(height, layerRadius);
+        }
+    }
+
+    createLayer(height, layerRadius) {
+        const numCubes = Math.ceil(layerRadius / this.cubeSize) * 2;
+        const offset = -numCubes * this.cubeSize / 2 + this.cubeSize / 2;
+
+        for (let x = 0; x < numCubes; x++) {
+            for (let z = 0; z < numCubes; z++) {
+                const cubeX = x * this.cubeSize + offset;
+                const cubeZ = z * this.cubeSize + offset;
+                const distanceToCenter = Math.sqrt(cubeX * cubeX + cubeZ * cubeZ);
+
+                if (distanceToCenter <= layerRadius) {
+                    const cube = new THREE.Mesh(
+                        new THREE.BoxGeometry(this.cubeSize, this.cubeSize, this.cubeSize),
+                        new THREE.MeshStandardMaterial({ color: 0xffffff })
+                    );
+                    cube.position.set(cubeX, height, cubeZ);
+                    scene.add(cube);
+                }
+            }
+        }
     }
 }
 
-// -----------------------
-// Line Geometry
-// -----------------------
+const cubeSphere = new CubeSphere(1, 10, scene);
 
-const linePoints = []
-const lineGroup = new THREE.Group();
-scene.add(lineGroup);
-
-for (let i = 0; i < 40; i++) {
-    const line = new THREE.Line(new THREE.BufferGeometry(), new THREE.LineBasicMaterial({ color: 0xffffff }));
-    lineGroup.add(line);
-    const originPoint = new THREE.Vector3((Math.random() - 0.5) * 4.0, Math.sin(i) * 4.0, (Math.random() - 0.5) * 10.0);
-    const targetPoint = new THREE.Vector3(0, 0, 0);
-    linePoints.push([ originPoint, targetPoint ]);
-}
-
-const setLinesToSpherePosition = (index) => {
-    const targetPoint = sphereGroup.children[index % sphereGroup.children.length].position
-    lineGroup.children.forEach((line, index) => {
-        linePoints[index][1] = targetPoint;
-        line.geometry.setFromPoints(linePoints[index]);
-    });
-
-    const lineColor = Math.random()
-    lineGroup.children.forEach((line) => {
-        line.material.color.setHSL(lineColor, 0.9, 0.5);
-    });
-}
 
 // -----------------------
 // Lights
@@ -94,10 +73,15 @@ const createLights = () => {
     light1.position.set(-2, 1, 4);
     lights.add(light1);
 
+    const light2 = new THREE.DirectionalLight(0xffffff, 0.8);
+    light2.position.set(2, -1, -4);
+    lights.add(light2);
+
     scene.add(lights);
+    return lights;
 };
 
-createLights();
+const lights = createLights();
 
 // -----------------------
 // Camera and Controls
@@ -140,37 +124,14 @@ window.addEventListener('mousemove', (event) => {
 });
 
 // -----------------------
-// Interval Counter
-// -----------------------
-
-class IntervalCounter {
-    constructor() {
-        this.counter = 0
-        this.lastTime = 0
-    }
-
-    update(inputTime, duration, callback) {
-        if (inputTime - this.lastTime >= duration) {
-            this.counter += 1
-            this.lastTime = inputTime
-            callback(this.counter)
-        }
-    }
-}
-
-const intervalCounter1 = new IntervalCounter()
-const intervalCounter2 = new IntervalCounter()
-
-
-// -----------------------
 // Animation
 // -----------------------
 
 const animate = () => {
     const absTime = clock.getElapsedTime();
 
-    intervalCounter1.update(absTime, 0.4, setLinesToSpherePosition)
-    intervalCounter2.update(absTime, 0.4, changeSphereColor)
+    lights.rotation.y = absTime * 0.2;
+    lights.rotation.x = Math.sin(absTime * 0.5) * 0.5;
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
