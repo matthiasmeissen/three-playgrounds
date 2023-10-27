@@ -103,6 +103,18 @@ class CubeSphere {
 const cubeSphere = new CubeSphere(1, 10, scene);
 cubeSphere.colorCubes('gradient');
 
+document.addEventListener('DOMContentLoaded', (event) => {
+    const valueSelects = document.querySelectorAll('.value-select');
+    valueSelects.forEach(select => {
+        select.addEventListener('click', () => {
+            valueSelects.forEach(s => s.classList.remove('selected'));
+            select.classList.add('selected');
+            const pattern = select.getAttribute('data-pattern');
+            cubeSphere.colorCubes(pattern);
+        });
+    });
+});
+
 
 // -----------------------
 // Lights
