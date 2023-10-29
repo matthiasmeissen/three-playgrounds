@@ -126,6 +126,102 @@ const cubeSphere = new CubeSphere(1, 10, scene);
 cubeSphere.colorCubes('gradient');
 
 // -----------------------
+// Select
+// -----------------------
+
+class InputGroup {
+    constructor(container, label, options, onSelect, type = 'text') {
+        this.container = container;
+        this.label = label;
+        this.options = options;
+        this.onSelect = onSelect;
+        this.type = type;
+        this.selectedOption = null;
+        this.add();
+    }
+
+    createLabel() {
+        const labelDiv = document.createElement('div');
+        labelDiv.textContent = this.label;
+        return labelDiv;
+    }
+
+    createOption(value) {
+        const optionDiv = document.createElement('div');
+        optionDiv.classList.add('value-select');
+        optionDiv.textContent = value;
+
+        if (this.type === 'data-pattern') {
+            optionDiv.setAttribute('data-pattern', value);
+        }
+
+        optionDiv.addEventListener('click', () => this.selectOption(optionDiv));
+        return optionDiv;
+    }
+
+    createOptions() {
+        const optionsContainer = document.createElement('div');
+        optionsContainer.classList.add('input-options');
+
+        this.options.forEach((value, index) => {
+            const option = this.createOption(value);
+            optionsContainer.appendChild(option);
+
+            if (index === 0) {
+                this.selectOption(option);
+            }
+        });
+
+        return optionsContainer;
+    }
+
+    selectOption(option) {
+        if (this.selectedOption) {
+            this.selectedOption.classList.remove('selected');
+        }
+        option.classList.add('selected');
+        this.selectedOption = option;
+
+        this.onSelect(option);
+    }
+
+    add() {
+        const inputGroup = document.createElement('div');
+        inputGroup.classList.add('inputs');
+
+        inputGroup.appendChild(this.createLabel());
+        inputGroup.appendChild(this.createOptions());
+
+        this.container.appendChild(inputGroup);
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    const controlsContainer = document.querySelector('.controls .inner');
+
+    new InputGroup(
+        controlsContainer,
+        'Choose color',
+        ['gradient', 'height', 'checker', 'radial', 'waves'],
+        selectedOption => {
+            const pattern = selectedOption.getAttribute('data-pattern');
+            console.log('Color selected:', pattern);
+            cubeSphere.colorCubes(pattern);
+        },
+        'data-pattern'
+    );
+
+    new InputGroup(
+        controlsContainer,
+        'Choose Size',
+        ['8', '12', '14', '16'],
+        selectedOption => {
+            cubeSphere.setResolution(parseInt(selectedOption.textContent));
+        }
+    );
+});
+
+// -----------------------
 // Lights
 // -----------------------
 
