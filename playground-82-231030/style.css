@@ -1,0 +1,79 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+}
+
+a.menu {
+    position: fixed;
+    right: 60px;
+    bottom: 60px;
+    color: #000000;
+    text-decoration: none;
+    background-color: #ffffff;
+    padding: 8px 12px;
+    border: 1px solid #000000;
+    border-radius: 20px;
+    opacity: 0.2;
+}
+
+a.menu:hover {
+    opacity: 1;
+}
+
+.controls {
+    position: fixed;
+    bottom: 32px;
+    width: 100%;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.controls .inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 48px;
+    background-color: hsl(0, 0%, 10%);
+    border: 1px solid hsl(0, 0%, 20%);
+    border-radius: 20px;
+    padding: 16px 20px;
+}
+
+.inputs {
+    font-size: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    color: hsl(0, 0%, 80%);
+}
+
+.input-options {
+    height: 24px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.value-select {
+    background-color: hsl(0, 0%, 20%);
+    border-radius: 4px;
+    padding: 2px 8px;
+}
+
+.value-select:hover {
+    cursor: pointer;
+    background-color: hsl(0, 0%, 30%);
+}
+
+.value-select.selected {
+    color: hsl(232, 60%, 90%);
+    background-color: hsl(232, 89%, 60%);
+}
