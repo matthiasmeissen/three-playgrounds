@@ -18,208 +18,55 @@ const clock = new THREE.Clock();
 // Geometry
 // -----------------------
 
-class CubeSphere {
-    constructor(radius, resolution, scene) {
-        this.radius = radius;
-        this.resolution = resolution;
-        this.scene = scene;
-        this.cubeSize = this.radius * 2 / this.resolution;
-        this.cubes = [];
-        this.currentColor = null;
-        this.createLayers();
+
+class TextCanvasTexture {
+    constructor(canvas) {
+        this.canvas = canvas;
+        this.context = this.canvas.getContext('2d');
+        this.texture = new THREE.CanvasTexture(this.canvas);
+        this.isBlinking = false;
+        this.init();
     }
 
-    createLayers() {
-        for (let i = 0; i < this.resolution; i++) {
-            const height = -this.radius + i * (this.radius * 2 / this.resolution);
-            const layerRadius = Math.sqrt(this.radius * this.radius - height * height);
-            this.createLayer(height, layerRadius);
-        }
+    init() {
+        this.canvas.width = 1024;
+        this.canvas.height = 1024;
+        window.addEventListener('click', this.handleClick.bind(this));
     }
 
-    createLayer(height, layerRadius) {
-        const numCubes = Math.ceil(layerRadius / this.cubeSize) * 2;
-        const offset = -numCubes * this.cubeSize / 2 + this.cubeSize / 2;
-
-        for (let x = 0; x < numCubes; x++) {
-            for (let z = 0; z < numCubes; z++) {
-                const cubeX = x * this.cubeSize + offset;
-                const cubeZ = z * this.cubeSize + offset;
-                const distanceToCenter = Math.sqrt(cubeX * cubeX + cubeZ * cubeZ);
-
-                if (distanceToCenter <= layerRadius) {
-                    const cube = new THREE.Mesh(
-                        new THREE.BoxGeometry(this.cubeSize, this.cubeSize, this.cubeSize),
-                        new THREE.MeshStandardMaterial({ color: 0xffffff })
-                    );
-                    cube.position.set(cubeX, height, cubeZ);
-                    this.scene.add(cube);
-                    this.cubes.push({ cube, position: cube.position });
-                }
-            }
-        }
+    drawText(text) {
+        this.context.fillStyle = 'blue';
+        this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.context.fillStyle = 'white';
+        this.context.font = '200px Arial';
+        this.context.textAlign = 'center';
+        this.context.fillText(text, this.canvas.width * 0.5, this.canvas.height * 0.5);
+        this.texture.needsUpdate = true;
     }
 
-    colorCubes(type) {
-        this.cubes.forEach(({ cube, position }) => {
-            this.colorCube(cube, position, type);
-        });
-    }
-
-    colorCube(cube, position, type) {
-        this.currentColor = type;
-
-        switch (this.currentColor) {
-            case 'gradient':
-                const distanceToCenter = position.length();
-                const normalizedDistance = distanceToCenter / this.radius;
-                cube.material.color.setHSL(normalizedDistance, 1, 0.5);
-                break;
-            case 'height':
-                const heightNormalized = (position.y + this.radius) / (2 * this.radius);
-                cube.material.color.setHSL(heightNormalized, 1, 0.5);
-                break;
-            case 'checker':
-                const checkerSize = 5;
-                const x = Math.floor(position.x / this.cubeSize);
-                const z = Math.floor(position.z / this.cubeSize);
-                if ((x + z) % 2 === 0) {
-                    cube.material.color.set(0x000000);
-                } else {
-                    cube.material.color.set(0xffffff);
-                }
-                break;
-            case 'radial':
-                const angle = Math.atan2(position.z, position.x);
-                cube.material.color.setHSL((angle + Math.PI) / (2 * Math.PI), 1, 0.5);
-                break;
-            case 'waves':
-                const waveFactor = Math.sin(position.y / this.radius * Math.PI * 5) * 0.5 + 0.5;
-                cube.material.color.setHSL(waveFactor, 1, 0.5);
-                break;
-            default:
-                cube.material.color.setHSL(0, 0, 0.5);
-        }
-    }
-
-    setResolution(newResolution) {
-        if (newResolution !== this.resolution) {
-            this.resolution = newResolution;
-            this.cubeSize = this.radius * 2 / this.resolution;
-            this.clearCubes();
-            this.createLayers();
-            this.colorCubes(this.currentColor);
-        }
-    }
-
-    clearCubes() {
-        this.cubes.forEach(({ cube }) => {
-            this.scene.remove(cube);
-            cube.geometry.dispose();
-            cube.material.dispose();
-        });
-        this.cubes = [];
+    handleClick() {
+        this.isBlinking = !this.isBlinking;
+        this.drawText(this.isBlinking ? 'olo' : '-lo');
     }
 }
 
-const cubeSphere = new CubeSphere(1, 10, scene);
-cubeSphere.colorCubes('gradient');
+const canvas1 = document.createElement('canvas');
+const canvasTexture = new TextCanvasTexture(canvas1);
+canvasTexture.drawText('olo');
 
-// -----------------------
-// Select
-// -----------------------
+const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 32, 32),
+    new THREE.MeshStandardMaterial({ map: canvasTexture.texture })
+);
 
-class InputGroup {
-    constructor(container, label, options, onSelect, type = 'text') {
-        this.container = container;
-        this.label = label;
-        this.options = options;
-        this.onSelect = onSelect;
-        this.type = type;
-        this.selectedOption = null;
-        this.add();
-    }
+sphere.rotation.y = Math.PI * 0.5;
 
-    createLabel() {
-        const labelDiv = document.createElement('div');
-        labelDiv.textContent = this.label;
-        return labelDiv;
-    }
+const sphereGroup = new THREE.Group();
+sphereGroup.add(sphere);
 
-    createOption(value) {
-        const optionDiv = document.createElement('div');
-        optionDiv.classList.add('value-select');
-        optionDiv.textContent = value;
+scene.add(sphereGroup);
 
-        if (this.type === 'data-pattern') {
-            optionDiv.setAttribute('data-pattern', value);
-        }
-
-        optionDiv.addEventListener('click', () => this.selectOption(optionDiv));
-        return optionDiv;
-    }
-
-    createOptions() {
-        const optionsContainer = document.createElement('div');
-        optionsContainer.classList.add('input-options');
-
-        this.options.forEach((value, index) => {
-            const option = this.createOption(value);
-            optionsContainer.appendChild(option);
-
-            if (index === 0) {
-                this.selectOption(option);
-            }
-        });
-
-        return optionsContainer;
-    }
-
-    selectOption(option) {
-        if (this.selectedOption) {
-            this.selectedOption.classList.remove('selected');
-        }
-        option.classList.add('selected');
-        this.selectedOption = option;
-
-        this.onSelect(option);
-    }
-
-    add() {
-        const inputGroup = document.createElement('div');
-        inputGroup.classList.add('inputs');
-
-        inputGroup.appendChild(this.createLabel());
-        inputGroup.appendChild(this.createOptions());
-
-        this.container.appendChild(inputGroup);
-    }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-    const controlsContainer = document.querySelector('.controls .inner');
-
-    new InputGroup(
-        controlsContainer,
-        'Choose color',
-        ['gradient', 'height', 'checker', 'radial', 'waves'],
-        selectedOption => {
-            const pattern = selectedOption.getAttribute('data-pattern');
-            console.log('Color selected:', pattern);
-            cubeSphere.colorCubes(pattern);
-        },
-        'data-pattern'
-    );
-
-    new InputGroup(
-        controlsContainer,
-        'Choose Size',
-        ['8', '12', '14', '16'],
-        selectedOption => {
-            cubeSphere.setResolution(parseInt(selectedOption.textContent));
-        }
-    );
-});
+let target = new THREE.Vector3();
 
 // -----------------------
 // Lights
@@ -291,8 +138,8 @@ window.addEventListener('mousemove', (event) => {
 const animate = () => {
     const absTime = clock.getElapsedTime();
 
-    lights.rotation.y = absTime * 0.2;
-    lights.rotation.x = Math.sin(absTime * 0.5) * 0.5;
+    target.set(-cursor.x, -cursor.y, 1.0).unproject(camera);
+    sphereGroup.lookAt(target);
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
