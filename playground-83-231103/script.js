@@ -24,29 +24,36 @@ class TextCanvasTexture {
         this.canvas = canvas;
         this.context = this.canvas.getContext('2d');
         this.texture = new THREE.CanvasTexture(this.canvas);
-        this.isBlinking = false;
+        this.positionY = 0;
         this.init();
     }
 
     init() {
         this.canvas.width = 1024;
         this.canvas.height = 1024;
-        window.addEventListener('click', this.handleClick.bind(this));
     }
 
-    drawText(text) {
-        this.context.fillStyle = 'blue';
+    drawText(text, color = 0.6) {
+        this.context.fillStyle = `hsl(${color * 360}, 100%, 50%)`;
         this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
         this.context.fillStyle = 'white';
         this.context.font = '200px Arial';
         this.context.textAlign = 'center';
         this.context.fillText(text, this.canvas.width * 0.5, this.canvas.height * 0.5);
+
+        this.context.fillStyle = 'white';
+        this.context.fillRect(0, this.canvas.height * this.positionY, this.canvas.width, this.canvas.height * 0.02);
+
         this.texture.needsUpdate = true;
     }
 
-    handleClick() {
-        this.isBlinking = !this.isBlinking;
-        this.drawText(this.isBlinking ? 'olo' : '-lo');
+    updatePositionY() {
+        if (this.positionY < 1) {
+            this.positionY += 0.004;
+        } else {
+            this.positionY = 0;
+        }
     }
 }
 
@@ -59,14 +66,22 @@ const sphere = new THREE.Mesh(
     new THREE.MeshStandardMaterial({ map: canvasTexture.texture })
 );
 
-sphere.rotation.y = Math.PI * 0.5;
+sphere.rotation.y = Math.PI * -0.5;
 
 const sphereGroup = new THREE.Group();
 sphereGroup.add(sphere);
-
 scene.add(sphereGroup);
 
 let target = new THREE.Vector3();
+
+const cube = new THREE.Mesh(
+    new THREE.BoxGeometry(0.2, 0.2, 0.2),
+    new THREE.MeshStandardMaterial()
+);
+
+cube.material.color.setHSL(0.0, 0.0, 0.5);
+cube.position.set(target.x, target.y, target.z);
+scene.add(cube);
 
 // -----------------------
 // Lights
@@ -138,8 +153,21 @@ window.addEventListener('mousemove', (event) => {
 const animate = () => {
     const absTime = clock.getElapsedTime();
 
-    target.set(-cursor.x, -cursor.y, 1.0).unproject(camera);
+    const col = new THREE.Color();
+
+    target.set(cursor.x, cursor.y, 2.0);
+    cube.position.set(target.x, target.y, target.z);
     sphereGroup.lookAt(target);
+
+    canvasTexture.updatePositionY();
+    canvasTexture.drawText('olo', Math.sin(absTime));
+
+    cube.material.color.setHSL(1.0 - Math.sin(absTime), 1.0, 0.5);
+    cube.scale.set(1 + Math.abs(cursor.x * 2.0), 1 + Math.abs(cursor.y * 2.0), 1);
+
+    col.setHSL(1.0 - Math.sin(absTime * 0.5), 0.5, 0.1);
+
+    scene.background = col;
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
