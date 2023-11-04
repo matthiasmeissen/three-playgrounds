@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 // -----------------------
 // Initial Setup
@@ -18,70 +17,74 @@ const clock = new THREE.Clock();
 // Geometry
 // -----------------------
 
+class TileGrid {
+    constructor(tiles = 30) {
+        this.tiles = tiles;
+        this.tileGeometry = new THREE.PlaneGeometry(1, 1);
+        this.grid = new THREE.Group();
 
-class TextCanvasTexture {
-    constructor(canvas) {
-        this.canvas = canvas;
-        this.context = this.canvas.getContext('2d');
-        this.texture = new THREE.CanvasTexture(this.canvas);
-        this.positionY = 0;
-        this.init();
+        this.createGrid(0.04);
     }
 
-    init() {
-        this.canvas.width = 1024;
-        this.canvas.height = 1024;
-    }
-
-    drawText(text, color = 0.6) {
-        this.context.fillStyle = `hsl(${color * 360}, 100%, 50%)`;
-        this.context.fillRect(0, 0, this.canvas.width, this.canvas.height);
-
-        this.context.fillStyle = 'white';
-        this.context.font = '200px Arial';
-        this.context.textAlign = 'center';
-        this.context.fillText(text, this.canvas.width * 0.5, this.canvas.height * 0.5);
-
-        this.context.fillStyle = 'white';
-        this.context.fillRect(0, this.canvas.height * this.positionY, this.canvas.width, this.canvas.height * 0.02);
-
-        this.texture.needsUpdate = true;
-    }
-
-    updatePositionY() {
-        if (this.positionY < 1) {
-            this.positionY += 0.004;
-        } else {
-            this.positionY = 0;
+    createTile(posX, posY) {
+        const tile = new THREE.Mesh(
+            this.tileGeometry,
+            new THREE.MeshStandardMaterial({ color: 0xffffff, side: THREE.DoubleSide })
+        );
+        tile.position.set(posX, posY, 0);
+        tile.userData = {
+            originalColor: new THREE.Color(0xffffff),
+            isHovered: false,
         }
+        this.grid.add(tile);
+    }
+
+    createGrid(gap) {
+        const offset = (this.tiles - 1 + gap * (this.tiles - 1)) / 2;
+        for (let x = 0; x < this.tiles; x++) {
+            for (let y = 0; y < this.tiles; y++) {
+                this.createTile(x + x * gap - offset, y + y * gap - offset);
+            }
+        }
+        this.grid.rotation.set(Math.PI / 2, 0, Math.PI * 0.25);
+        this.grid.scale.set(0.4, 0.4, 0.4)
+        scene.add(this.grid);
+    }
+
+    updateGrid(delta) {
+        this.grid.children.forEach(tile => {
+            if (!tile.userData.isHovered && tile.material.color !== tile.userData.originalColor) {
+                tile.material.color.lerp(tile.userData.originalColor, delta * 200)
+            }
+        });
     }
 }
 
-const canvas1 = document.createElement('canvas');
-const canvasTexture = new TextCanvasTexture(canvas1);
-canvasTexture.drawText('olo');
 
-const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 32, 32),
-    new THREE.MeshStandardMaterial({ map: canvasTexture.texture })
-);
+const tileGrid = new TileGrid();
 
-sphere.rotation.y = Math.PI * -0.5;
+// -----------------------
+// Raycaster
+// -----------------------
 
-const sphereGroup = new THREE.Group();
-sphereGroup.add(sphere);
-scene.add(sphereGroup);
+const raycaster1 = new THREE.Raycaster();
 
-let target = new THREE.Vector3();
+const checkIntersection = () => {
+    raycaster1.setFromCamera(cursor, camera);
 
-const cube = new THREE.Mesh(
-    new THREE.BoxGeometry(0.2, 0.2, 0.2),
-    new THREE.MeshStandardMaterial()
-);
+    tileGrid.grid.children.forEach(tile => {
+        tile.userData.isHovered = false;
+    })
 
-cube.material.color.setHSL(0.0, 0.0, 0.5);
-cube.position.set(target.x, target.y, target.z);
-scene.add(cube);
+    const intersects = raycaster1.intersectObjects(tileGrid.grid.children);
+
+    if (intersects.length > 0) {
+        const tile = intersects[0].object;
+        tile.material.color.setHSL(0.8, 1, 0.5);
+        tile.userData.isHovered = true;
+    }
+};
+
 
 // -----------------------
 // Lights
@@ -111,8 +114,8 @@ const lights = createLights();
 // -----------------------
 
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-camera.position.set(0, 0, 4);
-const orbitControls = new OrbitControls(camera, renderer.domElement);
+camera.position.set(0, 4, 4);
+camera.lookAt(0, 0, 0);
 
 // -----------------------
 // Event Listeners
@@ -153,21 +156,9 @@ window.addEventListener('mousemove', (event) => {
 const animate = () => {
     const absTime = clock.getElapsedTime();
 
-    const col = new THREE.Color();
+    checkIntersection();
 
-    target.set(cursor.x, cursor.y, 2.0);
-    cube.position.set(target.x, target.y, target.z);
-    sphereGroup.lookAt(target);
-
-    canvasTexture.updatePositionY();
-    canvasTexture.drawText('olo', Math.sin(absTime));
-
-    cube.material.color.setHSL(1.0 - Math.sin(absTime), 1.0, 0.5);
-    cube.scale.set(1 + Math.abs(cursor.x * 2.0), 1 + Math.abs(cursor.y * 2.0), 1);
-
-    col.setHSL(1.0 - Math.sin(absTime * 0.5), 0.5, 0.1);
-
-    scene.background = col;
+    tileGrid.updateGrid(clock.getDelta());
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
