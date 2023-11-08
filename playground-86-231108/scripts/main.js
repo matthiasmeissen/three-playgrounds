@@ -1,8 +1,10 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 import createLights from './lights.js';
 import createCamera from './camera.js';
 import TileGrid from './tileGrid.js';
+import TextCanvasTexture from './textureCanvas.js';
 
 // -----------------------
 // Initial Setup
@@ -23,13 +25,15 @@ const clock = new THREE.Clock();
 const planeGroup = new THREE.Group();
 scene.add(planeGroup);
 
-planeGroup.rotation.set(Math.PI / 2, 0, Math.PI * 0.25);
+planeGroup.rotation.set(Math.PI / -2, 0, Math.PI * -0.25);
+
 planeGroup.position.set(0, 0.2, 0);
 
 const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(1, 1),
+    new THREE.PlaneGeometry(2, 2),
     new THREE.MeshStandardMaterial({ color: 0x00ffff, side: THREE.DoubleSide })
 );
+
 
 plane.userData = {
     isHovered: false
@@ -38,11 +42,16 @@ plane.userData = {
 planeGroup.add(plane);
 
 
+const textCanvasTexture = new TextCanvasTexture();
+textCanvasTexture.drawText('olo');
+plane.material.map = textCanvasTexture.getTexture();
+
+
 const changePlaneColor = () => {
     if (plane.userData.isHovered) {
         plane.material.color.setHSL(0.8, 1, 0.5);
     } else {
-        plane.material.color.setHSL(0, 0, 0.2);
+        plane.material.color.setHSL(0.8, 1, 0.8);
     }
 }
 
@@ -125,6 +134,9 @@ const animate = () => {
 
     tileGrid.updateGrid(clock.getDelta());
     changePlaneColor()
+
+    textCanvasTexture.updatePositionY((absTime * 0.5) % 1);
+    textCanvasTexture.drawText(absTime.toString().slice(0, 3), (absTime * 0.25) % 1);
 
     renderer.render(scene, camera);
     requestAnimationFrame(animate);
