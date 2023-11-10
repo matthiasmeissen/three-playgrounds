@@ -1,5 +1,10 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { CopyShader } from './shader.js';
 
 import createLights from './lights.js';
 import createCamera from './camera.js';
@@ -22,37 +27,55 @@ const clock = new THREE.Clock();
 // Objects
 // -----------------------
 
-const planeGroup = new THREE.Group();
-scene.add(planeGroup);
+const sphereGroup = new THREE.Group();
+scene.add(sphereGroup);
 
-planeGroup.rotation.set(Math.PI / -2, 0, Math.PI * -0.25);
+sphereGroup.rotation.set(Math.PI / -2, 0, Math.PI * -0.25);
 
-planeGroup.position.set(0, 0.2, 0);
+sphereGroup.position.set(0, 0.2, 0);
 
-const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(2, 2),
-    new THREE.MeshStandardMaterial({ color: 0x00ffff, side: THREE.DoubleSide })
+const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(1.0, 32, 32),
+    new THREE.MeshStandardMaterial({ color: 0xff0000 })
 );
 
+sphere.scale.set(1.0, 0.8, 1.0);
 
-plane.userData = {
+
+
+sphere.userData = {
     isHovered: false
 }
 
-planeGroup.add(plane);
+sphereGroup.add(sphere);
 
 
 const textCanvasTexture = new TextCanvasTexture();
 textCanvasTexture.drawText('olo');
-plane.material.map = textCanvasTexture.getTexture();
+sphere.material.map = textCanvasTexture.getTexture();
 
 
-const changePlaneColor = () => {
-    if (plane.userData.isHovered) {
-        plane.material.color.setHSL(0.8, 1, 0.5);
+const changesphereColor = () => {
+    if (sphere.userData.isHovered) {
+        sphere.material.color.setHSL(0.8, 1, 0.5);
     } else {
-        plane.material.color.setHSL(0.8, 1, 0.8);
+        sphere.material.color.setHSL(0.8, 1, 0.8);
     }
+}
+
+for (let i = 0; i < 20; i++) {
+    const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.2, 4.0),
+        new THREE.MeshStandardMaterial({ color: 0xffffff })
+    );
+
+    plane.material.side = THREE.DoubleSide;
+    plane.material.map = textCanvasTexture.getTexture();
+
+    plane.rotation.set(i, 0, i);
+    plane.scale.y = Math.random();
+
+    sphereGroup.add(plane);
 }
 
 
@@ -73,7 +96,7 @@ const checkIntersection = () => {
         tile.userData.isHovered = false;
     })
 
-    plane.userData.isHovered = false;
+    sphere.userData.isHovered = false;
 
     const intersects = raycaster.intersectObjects(tileGrid.grid.children);
 
@@ -83,7 +106,7 @@ const checkIntersection = () => {
         tile.userData.isHovered = true;
     }
 
-    const intersects1 = raycaster.intersectObjects(planeGroup.children);
+    const intersects1 = raycaster.intersectObjects(sphereGroup.children);
 
     if (intersects1.length > 0) {
         const tile = intersects1[0].object;
@@ -123,6 +146,26 @@ window.addEventListener('mousemove', (event) => {
     cursor.y = - (event.clientY / window.innerHeight) * 2 + 1;
 });
 
+
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+
+
+// -----------------------
+// Postprocessing
+// -----------------------
+
+
+const composer = new EffectComposer(renderer);
+
+const renderPass = new RenderPass(scene, camera);
+composer.addPass(renderPass);
+
+const copyPass = new ShaderPass(CopyShader);
+composer.addPass(copyPass);
+
+const outputPass = new OutputPass();
+composer.addPass(outputPass);
+
 // -----------------------
 // Animation
 // -----------------------
@@ -133,12 +176,15 @@ const animate = () => {
     checkIntersection();
 
     tileGrid.updateGrid(clock.getDelta());
-    changePlaneColor()
+    changesphereColor()
+
+    sphereGroup.position.set(0, 0.2 + Math.sin(absTime), 0);
+    sphereGroup.rotation.y = absTime * 0.5;
 
     textCanvasTexture.updatePositionY((absTime * 0.5) % 1);
     textCanvasTexture.drawText(absTime.toString().slice(0, 3), (absTime * 0.25) % 1);
 
-    renderer.render(scene, camera);
+    composer.render();
     requestAnimationFrame(animate);
 };
 
