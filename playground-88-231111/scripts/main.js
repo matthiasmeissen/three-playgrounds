@@ -1,15 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
-import { CopyShader } from './shader.js';
 
 import createLights from './lights.js';
 import createCamera from './camera.js';
-import TileGrid from './tileGrid.js';
-import TextCanvasTexture from './textureCanvas.js';
+import eventListeners from './eventListeners.js';
 
 // -----------------------
 // Initial Setup
@@ -23,148 +17,87 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 const cursor = new THREE.Vector2();
 const clock = new THREE.Clock();
 
+const lights = createLights(scene);
+const camera = createCamera();
+eventListeners(camera, renderer, canvas, cursor);
+const orbitControls = new OrbitControls(camera, renderer.domElement);
+
 // -----------------------
 // Objects
 // -----------------------
 
-const sphereGroup = new THREE.Group();
-scene.add(sphereGroup);
+const shaderMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+        uTime: { value: 0 },
+        uParam1: { value: 0.5},
+        uParam2: { value: 0.5},
+    },
 
-sphereGroup.rotation.set(Math.PI / -2, 0, Math.PI * -0.25);
+    vertexShader: `
+        varying vec2 vUv;
 
-sphereGroup.position.set(0, 0.2, 0);
+        void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+    `,
+    fragmentShader: `
+        varying vec2 vUv;
+        uniform float uTime;
+        uniform float uParam1;
+        uniform float uParam2;
+
+        float mapToRange(float value, float min1, float max1, float min2, float max2) {
+            return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+        }
+
+        vec2 rotate(vec2 v, float a) {
+            float s = sin(a);
+            float c = cos(a);
+            mat2 m = mat2(c, -s, s, c);
+            return m * v;
+        }
+
+        void main() {
+            vec2 p = vUv - 0.5;
+            p = p * p;
+
+            p = rotate(p, uParam2);
+
+            float param1 = mapToRange(uParam1, -1.0, 1.0, 0.1, 0.9);
+
+            float d1 = fract(p.y * 8.0 + uTime * 0.8);
+            d1 = step(param1, d1);
+
+            vec3 color = vec3(d1);
+            gl_FragColor = vec4(color, 1.0);
+        }
+    `
+});
+
+const cube = new THREE.Mesh(
+    new THREE.BoxGeometry(1, 1, 1),
+    shaderMaterial
+);
+cube.position.x = -1;
+scene.add(cube);
+
 
 const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(1.0, 32, 32),
-    new THREE.MeshStandardMaterial({ color: 0xff0000 })
+    new THREE.SphereGeometry(0.5, 32, 32),
+    shaderMaterial
+);
+sphere.position.x = 1;
+scene.add(sphere);
+
+const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(5, 5),
+    shaderMaterial
 );
 
-sphere.scale.set(1.0, 0.8, 1.0);
+plane.material.side = THREE.DoubleSide;
+scene.add(plane);
 
-
-
-sphere.userData = {
-    isHovered: false
-}
-
-sphereGroup.add(sphere);
-
-
-const textCanvasTexture = new TextCanvasTexture();
-textCanvasTexture.drawText('olo');
-sphere.material.map = textCanvasTexture.getTexture();
-
-
-const changesphereColor = () => {
-    if (sphere.userData.isHovered) {
-        sphere.material.color.setHSL(0.8, 1, 0.5);
-    } else {
-        sphere.material.color.setHSL(0.8, 1, 0.8);
-    }
-}
-
-for (let i = 0; i < 20; i++) {
-    const plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.2, 4.0),
-        new THREE.MeshStandardMaterial({ color: 0xffffff })
-    );
-
-    plane.material.side = THREE.DoubleSide;
-    plane.material.map = textCanvasTexture.getTexture();
-
-    plane.rotation.set(i, 0, i);
-    plane.scale.y = Math.random();
-
-    sphereGroup.add(plane);
-}
-
-
-const tileGrid = new TileGrid(30, scene);
-const lights = createLights(scene);
-const camera = createCamera();
-
-// -----------------------
-// Raycaster
-// -----------------------
-
-const raycaster = new THREE.Raycaster();
-
-const checkIntersection = () => {
-    raycaster.setFromCamera(cursor, camera);
-
-    tileGrid.grid.children.forEach(tile => {
-        tile.userData.isHovered = false;
-    })
-
-    sphere.userData.isHovered = false;
-
-    const intersects = raycaster.intersectObjects(tileGrid.grid.children);
-
-    if (intersects.length > 0) {
-        const tile = intersects[0].object;
-        tile.material.color.setHSL(0.8, 1, 0.5);
-        tile.userData.isHovered = true;
-    }
-
-    const intersects1 = raycaster.intersectObjects(sphereGroup.children);
-
-    if (intersects1.length > 0) {
-        const tile = intersects1[0].object;
-        tile.userData.isHovered = true;
-    }
-};
-
-// -----------------------
-// Event Listeners
-// -----------------------
-
-window.addEventListener('resize', () => {
-    camera.aspect = window.innerWidth / window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-window.addEventListener('dblclick', () => {
-    const fullscreenElement = document.fullscreenElement || document.webkitFullscreenElement;
-    if (!fullscreenElement) {
-        if (canvas.requestFullscreen) {
-            canvas.requestFullscreen();
-        } else if (canvas.webkitRequestFullscreen) {
-            canvas.webkitRequestFullscreen();
-        }
-    } else {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) {
-            document.webkitExitFullscreen();
-        }
-    }
-});
-
-window.addEventListener('mousemove', (event) => {
-    cursor.x = (event.clientX / window.innerWidth) * 2 - 1;
-    cursor.y = - (event.clientY / window.innerHeight) * 2 + 1;
-});
-
-
-const orbitControls = new OrbitControls(camera, renderer.domElement);
-
-
-// -----------------------
-// Postprocessing
-// -----------------------
-
-
-const composer = new EffectComposer(renderer);
-
-const renderPass = new RenderPass(scene, camera);
-composer.addPass(renderPass);
-
-const copyPass = new ShaderPass(CopyShader);
-composer.addPass(copyPass);
-
-const outputPass = new OutputPass();
-composer.addPass(outputPass);
 
 // -----------------------
 // Animation
@@ -173,18 +106,12 @@ composer.addPass(outputPass);
 const animate = () => {
     const absTime = clock.getElapsedTime();
 
-    checkIntersection();
+    shaderMaterial.uniforms.uTime.value = absTime;
+    shaderMaterial.uniforms.uParam1.value = cursor.x;
+    shaderMaterial.uniforms.uParam2.value = cursor.y;
 
-    tileGrid.updateGrid(clock.getDelta());
-    changesphereColor()
 
-    sphereGroup.position.set(0, 0.2 + Math.sin(absTime), 0);
-    sphereGroup.rotation.y = absTime * 0.5;
-
-    textCanvasTexture.updatePositionY((absTime * 0.5) % 1);
-    textCanvasTexture.drawText(absTime.toString().slice(0, 3), (absTime * 0.25) % 1);
-
-    composer.render();
+    renderer.render(scene, camera);
     requestAnimationFrame(animate);
 };
 
