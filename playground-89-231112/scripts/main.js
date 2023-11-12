@@ -1,6 +1,11 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { FeedbackPass } from './FeedbackPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
 import createLights from './lights.js';
 import createCamera from './camera.js';
 import eventListeners from './eventListeners.js';
@@ -29,8 +34,8 @@ const orbitControls = new OrbitControls(camera, renderer.domElement);
 const shaderMaterial = new THREE.ShaderMaterial({
     uniforms: {
         uTime: { value: 0 },
-        uParam1: { value: 0.5},
-        uParam2: { value: 0.5},
+        uParam1: { value: 0.5 },
+        uParam2: { value: 0.5 },
     },
 
     vertexShader: `
@@ -75,28 +80,28 @@ const shaderMaterial = new THREE.ShaderMaterial({
     `
 });
 
-const cube = new THREE.Mesh(
-    new THREE.BoxGeometry(1, 1, 1),
-    shaderMaterial
-);
-cube.position.x = -1;
-scene.add(cube);
-
-
-const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.5, 32, 32),
-    shaderMaterial
-);
-sphere.position.x = 1;
-scene.add(sphere);
-
-const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(5, 5),
+const cylinder = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.1, 0.1, 4, 32),
     shaderMaterial
 );
 
-plane.material.side = THREE.DoubleSide;
-scene.add(plane);
+scene.add(cylinder);
+
+
+// -----------------------
+// Postprocessing
+// -----------------------
+
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+const feedbackPass = new FeedbackPass();
+feedbackPass.uniforms.intensity.value = 0.98;
+composer.addPass(feedbackPass);
+
+const outputPass = new OutputPass();
+composer.addPass(outputPass);
 
 
 // -----------------------
@@ -110,8 +115,9 @@ const animate = () => {
     shaderMaterial.uniforms.uParam1.value = cursor.x;
     shaderMaterial.uniforms.uParam2.value = cursor.y;
 
+    cylinder.rotation.x = absTime * 0.4;
 
-    renderer.render(scene, camera);
+    composer.render();
     requestAnimationFrame(animate);
 };
 
