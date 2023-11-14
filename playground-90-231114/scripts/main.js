@@ -3,7 +3,8 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { FeedbackPass } from './FeedbackPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { DisplacementShader } from './shader.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 import createLights from './lights.js';
@@ -80,8 +81,9 @@ const shaderMaterial = new THREE.ShaderMaterial({
     `
 });
 
+
 const cylinder = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.1, 0.1, 4, 32),
+    new THREE.CylinderGeometry(0.1, 0.1, 8, 32),
     shaderMaterial
 );
 
@@ -96,9 +98,8 @@ scene.add(cylinder);
 const composer = new EffectComposer(renderer);
 composer.addPass(new RenderPass(scene, camera));
 
-const feedbackPass = new FeedbackPass();
-feedbackPass.uniforms.intensity.value = 0.98;
-composer.addPass(feedbackPass);
+const displacementPass = new ShaderPass(DisplacementShader);
+composer.addPass(displacementPass);
 
 const outputPass = new OutputPass();
 composer.addPass(outputPass);
@@ -115,7 +116,8 @@ const animate = () => {
     shaderMaterial.uniforms.uParam1.value = cursor.x;
     shaderMaterial.uniforms.uParam2.value = cursor.y;
 
-    cylinder.rotation.x = absTime * 0.4;
+    cylinder.rotation.x = absTime * 0.2;
+    cylinder.rotation.z = absTime * 0.4;
 
     composer.render();
     requestAnimationFrame(animate);
