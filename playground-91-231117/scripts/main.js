@@ -72,8 +72,8 @@ const shaderMaterial = new THREE.ShaderMaterial({
 
             float param1 = mapToRange(uParam1, -1.0, 1.0, 0.1, 0.9);
 
-            float d1 = fract(p.y * 8.0 + uTime * 0.8);
-            d1 = step(param1, d1);
+            float d1 = fract(p.y * 8.0 + uTime * 0.4);
+            d1 = smoothstep(0.4 + param1, 0.5, d1);
 
             vec3 color = vec3(d1);
             gl_FragColor = vec4(color, 1.0);
@@ -82,12 +82,13 @@ const shaderMaterial = new THREE.ShaderMaterial({
 });
 
 
-const cylinder = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.1, 0.1, 8, 32),
+
+const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(10, 10, 32),
     shaderMaterial
 );
 
-scene.add(cylinder);
+scene.add(plane);
 
 
 // -----------------------
@@ -116,8 +117,6 @@ const animate = () => {
     shaderMaterial.uniforms.uParam1.value = cursor.x;
     shaderMaterial.uniforms.uParam2.value = cursor.y;
 
-    cylinder.rotation.x = absTime * 0.2;
-    cylinder.rotation.z = absTime * 0.4;
 
     composer.render();
     requestAnimationFrame(animate);

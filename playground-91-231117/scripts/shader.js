@@ -42,16 +42,14 @@ const DisplacementShader = {
 
 		void main() {
             vec2 p = vUv;
+			p = vec2(distance(p.x, p.y), length(p));
 
-            vec2 displacement = displace(p, 0.2);
+			float amount = 0.01;
 
-            vec2 displacedPosition = vec2(p.x + displacement.x, p.y + displacement.y);
-
-			vec4 inputTexture = texture2D( tDiffuse, displacedPosition);
-
-            vec3 color = inputTexture.rgb;
-
-            //color = vec3(displacedPosition.x);
+            vec3 color;
+			color.r = texture2D( tDiffuse, vec2(p.x * amount * p.y, p.y)).r;
+			color.g = texture2D( tDiffuse, vec2(p.x / amount * p.y, p.y)).g;
+			color.b = texture2D( tDiffuse, vec2(p.x + amount * p.y, p.y)).b;
 
 			gl_FragColor = vec4( color, 1.0 );
 		}`
