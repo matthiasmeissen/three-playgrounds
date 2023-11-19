@@ -30,26 +30,33 @@ const DisplacementShader = {
 		uniform sampler2D tDiffuse;
 		varying vec2 vUv;
 
-        vec2 displace(vec2 p, float amount) {
-            vec2 displacement = vec2(0.0);
 
-            displacement.x = (sin(p.y * 20.0) * 0.5 + 0.5) * amount - amount * 0.5;
-            displacement.y = 0.0;
+		vec4 boxBlur(sampler2D image, vec2 uv, vec2 texelSize, int blurSize) {
+			vec4 color = vec4(0.0);
+			vec2 blurSizeTexCoords = vec2(blurSize) * texelSize;
+		
+			for (float x = -blurSizeTexCoords.x; x <= blurSizeTexCoords.x; x += texelSize.x) {
+				for (float y = -blurSizeTexCoords.y; y <= blurSizeTexCoords.y; y += texelSize.y) {
+					color += texture2D(image, uv + vec2(x, y));
+				}
+			}
+		
+			color /= float((blurSize * 2 + 1) * (blurSize * 2 + 1));
+		
+			return color;
+		}
 
-            return displacement;
-        }
-        
-
+		
 		void main() {
             vec2 p = vUv;
-			p = vec2(distance(p.x, p.y), length(p));
 
-			float amount = 0.01;
+			vec4 texture = texture2D( tDiffuse, p );
 
-            vec3 color;
-			color.r = texture2D( tDiffuse, vec2(p.x * amount * p.y, p.y)).r;
-			color.g = texture2D( tDiffuse, vec2(p.x / amount * p.y, p.y)).g;
-			color.b = texture2D( tDiffuse, vec2(p.x + amount * p.y, p.y)).b;
+			vec4 blurTexture = boxBlur(tDiffuse, p, vec2(0.001, 0.001), 4);
+
+			float d1 = step(0.2, blurTexture.r);
+
+			vec3 color = vec3(d1);
 
 			gl_FragColor = vec4( color, 1.0 );
 		}`

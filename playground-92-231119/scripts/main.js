@@ -33,6 +33,8 @@ const orbitControls = new OrbitControls(camera, renderer.domElement);
 // -----------------------
 
 const shaderMaterial = new THREE.ShaderMaterial({
+    side: THREE.DoubleSide,
+
     uniforms: {
         uTime: { value: 0 },
         uParam1: { value: 0.5 },
@@ -66,29 +68,38 @@ const shaderMaterial = new THREE.ShaderMaterial({
 
         void main() {
             vec2 p = vUv - 0.5;
-            p = p * p;
 
-            p = rotate(p, uParam2);
+            p = rotate(p, uTime * 0.2);
 
             float param1 = mapToRange(uParam1, -1.0, 1.0, 0.1, 0.9);
 
-            float d1 = fract(p.y * 8.0 + uTime * 0.4);
-            d1 = smoothstep(0.4 + param1, 0.5, d1);
+            float d1 = length(p * p) * p.x * param1;
+            d1 = d1 / length(p) * sin(p.x * 20.0);
 
-            vec3 color = vec3(d1);
+            float d2 = step(d1, 0.01) - step(d1, uParam2 * 0.008);
+
+            vec3 color = vec3(d2);
             gl_FragColor = vec4(color, 1.0);
         }
     `
 });
 
 
-
 const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(10, 10, 32),
+    new THREE.PlaneGeometry(2, 2, 32),
     shaderMaterial
 );
 
+
 scene.add(plane);
+
+
+const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(0.5, 32, 32),
+    shaderMaterial
+);
+
+scene.add(sphere);
 
 
 // -----------------------
