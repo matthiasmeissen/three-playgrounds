@@ -85,21 +85,70 @@ const shaderMaterial = new THREE.ShaderMaterial({
 });
 
 
-const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(2, 2, 32),
-    shaderMaterial
-);
+const planeGroup = new THREE.Group();
+scene.add(planeGroup);
+
+for (let i = 0; i < 20; i++) {
+    const plane = new THREE.Mesh(
+        new THREE.PlaneGeometry(5, 5, 32, 32),
+        new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide, opacity: 0.1, transparent: true })
+    );
+    plane.position.y = i * 0.2;
+    plane.rotateX(Math.PI * -0.5);
+    planeGroup.add(plane);
+}
+
+const planes = planeGroup.children;
 
 
-scene.add(plane);
+function updatePlanes(time) {
+    planes.forEach((plane, index) => {
+        const i = index / 20;
+        plane.material.opacity = ((-i + time * 0.8) % 1) * 0.2;
+    });
+}
 
 
-const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(0.5, 32, 32),
-    shaderMaterial
-);
 
-scene.add(sphere);
+const cubeGroup = new THREE.Group();
+scene.add(cubeGroup);
+
+const cubeSize = 1;
+const gridSize = 10;
+const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+const material = shaderMaterial;
+const occupiedPositions = new Set();
+
+while (occupiedPositions.size < 20) {
+    const x = Math.floor(Math.random() * gridSize) - gridSize * 0.5 + cubeSize * 0.5;
+    const z = Math.floor(Math.random() * gridSize) - gridSize * 0.5 + cubeSize * 0.5;
+    const positionKey = `${x}_${z}`;
+
+    if (!occupiedPositions.has(positionKey)) {
+        const cube = new THREE.Mesh(geometry, material);
+        cube.position.set(x, 0.5, z);
+        cubeGroup.add(cube);
+        occupiedPositions.add(positionKey);
+    }
+}
+
+cubeGroup.scale.set(0.4, 0.4, 0.4);
+
+
+const cubes = cubeGroup.children;
+const selectedCubes = [];
+
+while (selectedCubes.length < 8) {
+    const randomIndex = Math.floor(Math.random() * cubes.length);
+    const selectedCube = cubes[randomIndex];
+
+    if (!selectedCubes.includes(selectedCube)) {
+        const randomScaleY = Math.floor(Math.random() * 5) + 4; // Random scale between 4 and 8
+        selectedCube.scale.y = randomScaleY;
+        selectedCube.position.y = randomScaleY * 0.5;
+        selectedCubes.push(selectedCube);
+    }
+}
 
 
 // -----------------------
@@ -128,8 +177,10 @@ const animate = () => {
     shaderMaterial.uniforms.uParam1.value = cursor.x;
     shaderMaterial.uniforms.uParam2.value = cursor.y;
 
+    updatePlanes(absTime);
 
-    composer.render();
+
+    renderer.render(scene, camera);
     requestAnimationFrame(animate);
 };
 
