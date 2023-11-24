@@ -85,28 +85,65 @@ const shaderMaterial = new THREE.ShaderMaterial({
 });
 
 
-const planeGroup = new THREE.Group();
-scene.add(planeGroup);
+class TransparentMesh {
+    constructor(input) {
+        this.group = new THREE.Group();
+        this.geometry = input.geometry;
+        this.num = input.num;
+        this.space = input.space;
+        this.color = input.color;
 
-for (let i = 0; i < 20; i++) {
-    const plane = new THREE.Mesh(
-        new THREE.PlaneGeometry(5, 5, 32, 32),
-        new THREE.MeshBasicMaterial({ color: 0xff0000, side: THREE.DoubleSide, opacity: 0.1, transparent: true })
-    );
-    plane.position.y = i * 0.2;
-    plane.rotateX(Math.PI * -0.5);
-    planeGroup.add(plane);
+        this.createGroup();
+    }
+
+    createMesh() {
+        const mesh = new THREE.Mesh(
+            this.geometry,
+            new THREE.MeshBasicMaterial({ color: this.color, side: THREE.DoubleSide, opacity: 0.1, transparent: true })
+        )
+        return mesh;
+    }
+
+    createGroup() {
+        for (let i = 0; i < this.num; i++) {
+            const mesh = this.createMesh();
+            mesh.position.y = i * this.space;
+            mesh.rotateX(Math.PI * -0.5);
+            this.group.add(mesh);
+        }
+
+        scene.add(this.group);
+    }
+
+    setPosition(x, y, z) {
+        this.group.position.set(x, y, z);
+    }
+
+    updateColor(time) {
+        this.group.children.forEach((mesh, index) => {
+            const i = index / this.num;
+            mesh.material.opacity = ((-i + time * 0.8) % 1) * 0.2;
+        });
+    }
 }
 
-const planes = planeGroup.children;
 
 
-function updatePlanes(time) {
-    planes.forEach((plane, index) => {
-        const i = index / 20;
-        plane.material.opacity = ((-i + time * 0.8) % 1) * 0.2;
-    });
-}
+const planes = new TransparentMesh({
+    geometry: new THREE.PlaneGeometry(5, 5, 32, 32), 
+    num: 20, 
+    space: 0.2,
+    color: 0xff0000
+});
+
+const planes2 = new TransparentMesh({
+    geometry: new THREE.PlaneGeometry(3, 3, 32, 32), 
+    num: 40, 
+    space: 0.1,
+    color: 0x0000ff
+});
+
+planes.setPosition(0, 0.15, 0);
 
 
 
@@ -114,7 +151,7 @@ const cubeGroup = new THREE.Group();
 scene.add(cubeGroup);
 
 const cubeSize = 1;
-const gridSize = 10;
+const gridSize = 20;
 const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
 const material = shaderMaterial;
 const occupiedPositions = new Set();
@@ -177,7 +214,9 @@ const animate = () => {
     shaderMaterial.uniforms.uParam1.value = cursor.x;
     shaderMaterial.uniforms.uParam2.value = cursor.y;
 
-    updatePlanes(absTime);
+
+    planes.updateColor(absTime);
+    planes2.updateColor(absTime * 0.5);
 
 
     renderer.render(scene, camera);
