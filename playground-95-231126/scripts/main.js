@@ -92,8 +92,9 @@ class TransparentMesh {
         this.num = input.num;
         this.space = input.space;
         this.color = input.color;
+        this.type = input.type;
 
-        this.createGroup();
+        this.createGroup(this.type);
     }
 
     createMesh() {
@@ -104,14 +105,37 @@ class TransparentMesh {
         return mesh;
     }
 
-    createGroup() {
+    createGroup(type) {
+        switch (type) {
+            case 'position':
+                this.createPositions();
+                break;
+            case 'scale':
+                this.createScale();
+                break;
+            default:
+                this.createPositions();
+                break;
+        }
+    }
+
+    createPositions() {
         for (let i = 0; i < this.num; i++) {
             const mesh = this.createMesh();
             mesh.position.y = i * this.space;
             mesh.rotateX(Math.PI * -0.5);
             this.group.add(mesh);
         }
+        scene.add(this.group);
+    }
 
+    createScale() {
+        for (let i = 0; i < this.num; i++) {
+            const mesh = this.createMesh();
+            const s = i / this.num;
+            mesh.scale.set(s, s, s);
+            this.group.add(mesh);
+        }
         scene.add(this.group);
     }
 
@@ -129,41 +153,49 @@ class TransparentMesh {
 
 
 
-const planes = new TransparentMesh({
-    geometry: new THREE.PlaneGeometry(5, 5, 32, 32), 
+const sphere1 = new TransparentMesh({
+    geometry: new THREE.SphereGeometry(2, 32, 32), 
     num: 20, 
-    space: 0.2,
-    color: 0xff0000
+    space: 0.5,
+    color: 0xff0000,
+    type: 'scale'
 });
 
-const planes2 = new TransparentMesh({
-    geometry: new THREE.PlaneGeometry(3, 3, 32, 32), 
-    num: 40, 
-    space: 0.1,
-    color: 0x0000ff
+const sphere2 = new TransparentMesh({
+    geometry: new THREE.SphereGeometry(2, 32, 32),
+    num: 20, 
+    space: 0.5,
+    color: 0x0000ff,
+    type: 'scale'
 });
 
-planes.setPosition(0, 0.15, 0);
+const randPos = () => {
+    return (Math.random() - 0.5) * 4;   
+}
+
+sphere1.setPosition(randPos(), randPos(), randPos());
+sphere2.setPosition(randPos(), randPos(), randPos());
 
 
 
 const cubeGroup = new THREE.Group();
 scene.add(cubeGroup);
 
-const cubeSize = 1;
+const cubeSize = 2;
 const gridSize = 20;
-const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize);
+const geometry = new THREE.PlaneGeometry(cubeSize, cubeSize);
 const material = shaderMaterial;
 const occupiedPositions = new Set();
 
 while (occupiedPositions.size < 20) {
     const x = Math.floor(Math.random() * gridSize) - gridSize * 0.5 + cubeSize * 0.5;
+    const y = Math.floor(Math.random() * gridSize) - gridSize * 0.5 + cubeSize * 0.5;
     const z = Math.floor(Math.random() * gridSize) - gridSize * 0.5 + cubeSize * 0.5;
-    const positionKey = `${x}_${z}`;
+    const positionKey = `${x}_${y}_${z}`;
 
     if (!occupiedPositions.has(positionKey)) {
         const cube = new THREE.Mesh(geometry, material);
-        cube.position.set(x, 0.5, z);
+        cube.position.set(x, y, z);
         cubeGroup.add(cube);
         occupiedPositions.add(positionKey);
     }
@@ -171,21 +203,6 @@ while (occupiedPositions.size < 20) {
 
 cubeGroup.scale.set(0.4, 0.4, 0.4);
 
-
-const cubes = cubeGroup.children;
-const selectedCubes = [];
-
-while (selectedCubes.length < 8) {
-    const randomIndex = Math.floor(Math.random() * cubes.length);
-    const selectedCube = cubes[randomIndex];
-
-    if (!selectedCubes.includes(selectedCube)) {
-        const randomScaleY = Math.floor(Math.random() * 5) + 4; // Random scale between 4 and 8
-        selectedCube.scale.y = randomScaleY;
-        selectedCube.position.y = randomScaleY * 0.5;
-        selectedCubes.push(selectedCube);
-    }
-}
 
 
 // -----------------------
@@ -215,8 +232,8 @@ const animate = () => {
     shaderMaterial.uniforms.uParam2.value = cursor.y;
 
 
-    planes.updateColor(absTime);
-    planes2.updateColor(absTime * 0.5);
+    sphere1.updateColor(absTime);
+    sphere2.updateColor(absTime);
 
 
     renderer.render(scene, camera);
