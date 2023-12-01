@@ -85,123 +85,28 @@ const shaderMaterial = new THREE.ShaderMaterial({
 });
 
 
-class TransparentMesh {
-    constructor(input) {
-        this.group = new THREE.Group();
-        this.geometry = input.geometry;
-        this.num = input.num;
-        this.space = input.space;
-        this.color = input.color;
-        this.type = input.type;
-
-        this.createGroup(this.type);
-    }
-
-    createMesh() {
-        const mesh = new THREE.Mesh(
-            this.geometry,
-            new THREE.MeshBasicMaterial({ color: this.color, side: THREE.DoubleSide, opacity: 0.1, transparent: true })
-        )
-        return mesh;
-    }
-
-    createGroup(type) {
-        switch (type) {
-            case 'position':
-                this.createPositions();
-                break;
-            case 'scale':
-                this.createScale();
-                break;
-            default:
-                this.createPositions();
-                break;
-        }
-    }
-
-    createPositions() {
-        for (let i = 0; i < this.num; i++) {
-            const mesh = this.createMesh();
-            mesh.position.y = i * this.space;
-            mesh.rotateX(Math.PI * -0.5);
-            this.group.add(mesh);
-        }
-        scene.add(this.group);
-    }
-
-    createScale() {
-        for (let i = 0; i < this.num; i++) {
-            const mesh = this.createMesh();
-            const s = i / this.num;
-            mesh.scale.set(s, s, s);
-            this.group.add(mesh);
-        }
-        scene.add(this.group);
-    }
-
-    setPosition(x, y, z) {
-        this.group.position.set(x, y, z);
-    }
-
-    updateColor(time) {
-        this.group.children.forEach((mesh, index) => {
-            const i = index / this.num;
-            mesh.material.opacity = ((-i + time * 0.8) % 1) * 0.2;
-        });
-    }
-}
+const sphere = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 32, 32),
+    shaderMaterial
+);
+scene.add(sphere);
 
 
+const group = new THREE.Group();
+scene.add(group);
 
-const sphere1 = new TransparentMesh({
-    geometry: new THREE.SphereGeometry(2, 32, 32), 
-    num: 20, 
-    space: 0.5,
-    color: 0xff0000,
-    type: 'scale'
-});
-
-const sphere2 = new TransparentMesh({
-    geometry: new THREE.SphereGeometry(2, 32, 32),
-    num: 20, 
-    space: 0.5,
-    color: 0x0000ff,
-    type: 'scale'
-});
-
-const randPos = () => {
-    return (Math.random() - 0.5) * 4;   
-}
-
-sphere1.setPosition(randPos(), randPos(), randPos());
-sphere2.setPosition(randPos(), randPos(), randPos());
+const torus = new THREE.Mesh(
+    new THREE.TorusGeometry(1.5, 0.05, 64, 64),
+    shaderMaterial
+);
+group.add(torus);
 
 
-
-const cubeGroup = new THREE.Group();
-scene.add(cubeGroup);
-
-const cubeSize = 2;
-const gridSize = 20;
-const geometry = new THREE.PlaneGeometry(cubeSize, cubeSize);
-const material = shaderMaterial;
-const occupiedPositions = new Set();
-
-while (occupiedPositions.size < 20) {
-    const x = Math.floor(Math.random() * gridSize) - gridSize * 0.5 + cubeSize * 0.5;
-    const y = Math.floor(Math.random() * gridSize) - gridSize * 0.5 + cubeSize * 0.5;
-    const z = Math.floor(Math.random() * gridSize) - gridSize * 0.5 + cubeSize * 0.5;
-    const positionKey = `${x}_${y}_${z}`;
-
-    if (!occupiedPositions.has(positionKey)) {
-        const cube = new THREE.Mesh(geometry, material);
-        cube.position.set(x, y, z);
-        cubeGroup.add(cube);
-        occupiedPositions.add(positionKey);
-    }
-}
-
-cubeGroup.scale.set(0.4, 0.4, 0.4);
+const torus1 = new THREE.Mesh(
+    new THREE.TorusGeometry(2, 0.05, 64, 64),
+    shaderMaterial
+);
+group.add(torus1);
 
 
 
@@ -231,12 +136,15 @@ const animate = () => {
     shaderMaterial.uniforms.uParam1.value = cursor.x;
     shaderMaterial.uniforms.uParam2.value = cursor.y;
 
+    torus.rotation.y = absTime * 0.4;
+    torus.rotation.x = absTime * 0.2;
 
-    sphere1.updateColor(absTime);
-    sphere2.updateColor(absTime);
+    torus1.rotation.x = absTime * 0.5;
+    torus1.rotation.z = absTime * 0.3;
 
 
-    renderer.render(scene, camera);
+
+    composer.render();
     requestAnimationFrame(animate);
 };
 
