@@ -85,28 +85,25 @@ const shaderMaterial = new THREE.ShaderMaterial({
 });
 
 
-const sphere = new THREE.Mesh(
-    new THREE.SphereGeometry(1, 32, 32),
-    shaderMaterial
-);
-scene.add(sphere);
-
-
 const group = new THREE.Group();
 scene.add(group);
 
-const torus = new THREE.Mesh(
-    new THREE.TorusGeometry(1.5, 0.05, 64, 64),
-    shaderMaterial
-);
-group.add(torus);
 
+for (let i = 1; i < 20; i++) {
+    const s = i / 20;
+    const mesh = new THREE.Mesh(
+        new THREE.TorusGeometry(s * 4, 0.05, 64, 64),
+        shaderMaterial
+    );
 
-const torus1 = new THREE.Mesh(
-    new THREE.TorusGeometry(2, 0.05, 64, 64),
-    shaderMaterial
-);
-group.add(torus1);
+    mesh.rotation.z = s * Math.PI * 8;
+    group.add(mesh);
+}
+
+group.rotation.x = Math.PI * -0.3;
+group.rotation.y = Math.PI * -0.1;
+
+group.position.y = 0.2;
 
 
 
@@ -136,15 +133,8 @@ const animate = () => {
     shaderMaterial.uniforms.uParam1.value = cursor.x;
     shaderMaterial.uniforms.uParam2.value = cursor.y;
 
-    torus.rotation.y = absTime * 0.4;
-    torus.rotation.x = absTime * 0.2;
 
-    torus1.rotation.x = absTime * 0.5;
-    torus1.rotation.z = absTime * 0.3;
-
-
-
-    composer.render();
+    renderer.render(scene, camera);
     requestAnimationFrame(animate);
 };
 
