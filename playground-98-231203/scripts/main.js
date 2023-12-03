@@ -39,6 +39,7 @@ const shaderMaterial = new THREE.ShaderMaterial({
         uTime: { value: 0 },
         uParam1: { value: 0.5 },
         uParam2: { value: 0.5 },
+        uColor: { value: new THREE.Color(0xff0000)}
     },
 
     vertexShader: `
@@ -54,6 +55,7 @@ const shaderMaterial = new THREE.ShaderMaterial({
         uniform float uTime;
         uniform float uParam1;
         uniform float uParam2;
+        uniform vec3 uColor;
 
         float mapToRange(float value, float min1, float max1, float min2, float max2) {
             return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
@@ -68,17 +70,17 @@ const shaderMaterial = new THREE.ShaderMaterial({
 
         void main() {
             vec2 p = vUv - 0.5;
+            p = p * p * 4.0;
 
             p = rotate(p, uTime * 0.2);
 
             float param1 = mapToRange(uParam1, -1.0, 1.0, 0.1, 0.9);
 
-            float d1 = length(p * p) * p.x * param1;
-            d1 = d1 / length(p) * sin(p.x * 20.0);
+            float d1 = distance(sin(p.x * 8.0 * p.y), sin(p.y * 8.0 * param1));
 
-            float d2 = step(d1, 0.01) - step(d1, uParam2 * 0.008);
+            float d2 = step(d1, 0.1) - step(d1, uParam2 * 0.08);
 
-            vec3 color = vec3(d2);
+            vec3 color = vec3(uColor * d2);
             gl_FragColor = vec4(color, 1.0);
         }
     `
@@ -89,14 +91,15 @@ const group = new THREE.Group();
 scene.add(group);
 
 
-for (let i = 1; i < 20; i++) {
-    const s = i / 20;
+for (let i = 1; i < 10; i++) {
+    const s = i / 10;
     const mesh = new THREE.Mesh(
-        new THREE.TorusGeometry(s * 4, 0.05, 64, 64),
+        new THREE.TorusGeometry(s * 4, 0.1, 64, 64),
         shaderMaterial
     );
 
-    mesh.rotation.z = s * Math.PI * 8;
+    mesh.rotation.z = s * Math.PI * 4;
+    mesh.rotation.y = -s * 0.4;
     group.add(mesh);
 }
 
@@ -104,6 +107,18 @@ group.rotation.x = Math.PI * -0.3;
 group.rotation.y = Math.PI * -0.1;
 
 group.position.y = 0.2;
+
+
+const plane = new THREE.Mesh(
+    new THREE.PlaneGeometry(1, 2),
+    shaderMaterial
+);
+
+plane.renderOrder = 1;
+
+plane.material.depthTest = false;
+
+scene.add(plane);
 
 
 
@@ -132,6 +147,15 @@ const animate = () => {
     shaderMaterial.uniforms.uTime.value = absTime;
     shaderMaterial.uniforms.uParam1.value = cursor.x;
     shaderMaterial.uniforms.uParam2.value = cursor.y;
+
+
+    if (Math.floor(absTime * 60) % 20 === 0) {
+        if (Math.random() > 0.1) {
+            shaderMaterial.uniforms.uColor.value = new THREE.Color(0xffffff);
+        } else {
+            shaderMaterial.uniforms.uColor.value = new THREE.Color(0xff0000);
+        }
+    }
 
 
     renderer.render(scene, camera);
